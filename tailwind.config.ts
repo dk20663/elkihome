@@ -57,6 +57,16 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        house: {
+          green: "hsl(var(--house-green))",
+          "green-light": "hsl(var(--house-green-light))",
+          black: "hsl(var(--house-black))",
+          "black-light": "hsl(var(--house-black-light))",
+        },
+        price: {
+          DEFAULT: "hsl(var(--price))",
+          foreground: "hsl(var(--price-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
