@@ -17,52 +17,64 @@ export type Database = {
       bookings: {
         Row: {
           bath_brooms: boolean
+          cancelled: boolean
           check_in: string
           check_out: string
+          citrus_infusion: boolean
           comment: string | null
           created_at: string
           created_by: string | null
           fir_infusion: boolean
+          guest_count: number
           guest_name: string
           guest_phone: string
           house_id: string
           id: string
           plunge_pool: boolean
           sauna: boolean
+          source: string
           total_price: number
           updated_at: string
         }
         Insert: {
           bath_brooms?: boolean
+          cancelled?: boolean
           check_in: string
           check_out: string
+          citrus_infusion?: boolean
           comment?: string | null
           created_at?: string
           created_by?: string | null
           fir_infusion?: boolean
+          guest_count?: number
           guest_name?: string
           guest_phone?: string
           house_id: string
           id?: string
           plunge_pool?: boolean
           sauna?: boolean
+          source?: string
           total_price?: number
           updated_at?: string
         }
         Update: {
           bath_brooms?: boolean
+          cancelled?: boolean
           check_in?: string
           check_out?: string
+          citrus_infusion?: boolean
           comment?: string | null
           created_at?: string
           created_by?: string | null
           fir_infusion?: boolean
+          guest_count?: number
           guest_name?: string
           guest_phone?: string
           house_id?: string
           id?: string
           plunge_pool?: boolean
           sauna?: boolean
+          source?: string
           total_price?: number
           updated_at?: string
         }
@@ -136,6 +148,7 @@ export type Database = {
     Views: {
       public_bookings_view: {
         Row: {
+          cancelled: boolean | null
           check_in: string | null
           check_out: string | null
           house_color: string | null
