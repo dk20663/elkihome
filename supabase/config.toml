@@ -2,3 +2,6 @@ project_id = "hpfurpylorcuvcoevpsl"
 
 [functions.telegram-auth]
 verify_jwt = false
+
+[functions.export-bookings]
+verify_jwt = false

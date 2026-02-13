@@ -24,10 +24,19 @@ export default function AuthPage() {
               <span>Ваш аккаунт не имеет доступа к системе</span>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Откройте через Telegram Mini App
+                Для доступа откройте приложение через Telegram
               </p>
+              <a
+                href="https://t.me/ElkiHomeBot/app"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button className="w-full">
+                  Открыть в Telegram
+                </Button>
+              </a>
               <p className="text-xs text-muted-foreground/70">
                 Доступ только для авторизованных пользователей
               </p>

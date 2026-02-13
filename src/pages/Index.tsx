@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { format, addMonths, subMonths, parseISO, isSameDay, isAfter, isBefore } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Eye, LogOut, Settings } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Eye, LogOut, Settings, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CalendarGrid from "@/components/CalendarGrid";
 import HouseFilter from "@/components/HouseFilter";
@@ -17,6 +17,7 @@ import { useBookings, useCreateBooking, useUpdateBooking, useCancelBooking } fro
 import type { HouseFilter as HouseFilterType, Booking, BookingFormData } from "@/lib/types";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Index() {
   const { user, telegramUser, loading: authLoading, signOut } = useAuth();
@@ -145,6 +146,33 @@ export default function Index() {
           <p className="text-[10px] text-muted-foreground">{displayName}</p>
         </div>
         <div className="flex gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={async () => {
+            try {
+              const { data: { session } } = await supabase.auth.getSession();
+              const res = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-bookings`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${session?.access_token}`,
+                    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                  },
+                }
+              );
+              if (!res.ok) throw new Error("Export failed");
+              const blob = await res.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "bookings.csv";
+              a.click();
+              URL.revokeObjectURL(url);
+              toast.success("Файл загружен");
+            } catch (err: any) {
+              toast.error(err.message);
+            }
+          }} title="Выгрузить данные">
+            <Download className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowPriceSettings(true)} title="Настройки цен">
             <Settings className="h-4 w-4" />
           </Button>
