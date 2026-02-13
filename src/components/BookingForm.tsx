@@ -18,9 +18,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import type { House, BookingFormData, Booking } from "@/lib/types";
+import type { House, BookingFormData, Booking, HouseFilter } from "@/lib/types";
 import { toast } from "sonner";
 import { Save, X } from "lucide-react";
+
+const SOURCES = ["ВК", "Инстаграм", "Звонок", "Авито", "Суточно", "Циан", "Другое"];
+const GUEST_COUNTS = [1, 2, 3, 4, 5, 6];
 
 interface Props {
   open: boolean;
@@ -30,6 +33,7 @@ interface Props {
   initialData?: Booking | null;
   defaultDates?: { start: Date | null; end: Date | null };
   loading?: boolean;
+  currentFilter?: HouseFilter;
 }
 
 export default function BookingForm({
@@ -40,6 +44,7 @@ export default function BookingForm({
   initialData,
   defaultDates,
   loading,
+  currentFilter,
 }: Props) {
   const [houseId, setHouseId] = useState("");
   const [checkIn, setCheckIn] = useState("");
@@ -48,10 +53,13 @@ export default function BookingForm({
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [comment, setComment] = useState("");
+  const [source, setSource] = useState("");
+  const [guestCount, setGuestCount] = useState("1");
   const [sauna, setSauna] = useState(false);
   const [plungePool, setPlungePool] = useState(false);
   const [bathBrooms, setBathBrooms] = useState(false);
   const [firInfusion, setFirInfusion] = useState(false);
+  const [citrusInfusion, setCitrusInfusion] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -62,24 +70,36 @@ export default function BookingForm({
       setGuestName(initialData.guest_name);
       setGuestPhone(initialData.guest_phone);
       setComment(initialData.comment || "");
+      setSource(initialData.source || "");
+      setGuestCount(String(initialData.guest_count || 1));
       setSauna(initialData.sauna);
       setPlungePool(initialData.plunge_pool);
       setBathBrooms(initialData.bath_brooms);
       setFirInfusion(initialData.fir_infusion);
+      setCitrusInfusion(initialData.citrus_infusion);
     } else {
-      setHouseId(houses[0]?.id || "");
+      // Default house based on current filter
+      const defaultHouse = currentFilter === "green"
+        ? houses.find(h => h.name === "GREEN")
+        : currentFilter === "black"
+        ? houses.find(h => h.name === "BLACK")
+        : houses[0];
+      setHouseId(defaultHouse?.id || houses[0]?.id || "");
       setCheckIn(defaultDates?.start ? format(defaultDates.start, "yyyy-MM-dd") : "");
       setCheckOut(defaultDates?.end ? format(defaultDates.end, "yyyy-MM-dd") : "");
       setTotalPrice("");
       setGuestName("");
       setGuestPhone("");
       setComment("");
+      setSource("");
+      setGuestCount("1");
       setSauna(false);
       setPlungePool(false);
       setBathBrooms(false);
       setFirInfusion(false);
+      setCitrusInfusion(false);
     }
-  }, [initialData, defaultDates, houses, open]);
+  }, [initialData, defaultDates, houses, open, currentFilter]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,10 +119,13 @@ export default function BookingForm({
       guest_name: guestName,
       guest_phone: guestPhone,
       comment,
+      source,
+      guest_count: Number(guestCount),
       sauna,
       plunge_pool: plungePool,
       bath_brooms: bathBrooms,
       fir_infusion: firInfusion,
+      citrus_infusion: citrusInfusion,
     });
   };
 
@@ -161,15 +184,48 @@ export default function BookingForm({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs font-medium">Стоимость, ₽</Label>
+              <Input
+                type="number"
+                value={totalPrice}
+                onChange={(e) => setTotalPrice(e.target.value)}
+                placeholder="0"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs font-medium">Гостей</Label>
+              <Select value={guestCount} onValueChange={setGuestCount}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {GUEST_COUNTS.map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div>
-            <Label className="text-xs font-medium">Стоимость, ₽</Label>
-            <Input
-              type="number"
-              value={totalPrice}
-              onChange={(e) => setTotalPrice(e.target.value)}
-              placeholder="0"
-              className="mt-1"
-            />
+            <Label className="text-xs font-medium">Источник</Label>
+            <Select value={source} onValueChange={setSource}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Выберите источник" />
+              </SelectTrigger>
+              <SelectContent>
+                {SOURCES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -210,6 +266,7 @@ export default function BookingForm({
                 { id: "plunge", label: "Купель", checked: plungePool, set: setPlungePool },
                 { id: "brooms", label: "Веники в баню", checked: bathBrooms, set: setBathBrooms },
                 { id: "fir", label: "Пихтовая запарка", checked: firInfusion, set: setFirInfusion },
+                { id: "citrus", label: "Цитрусовая запарка", checked: citrusInfusion, set: setCitrusInfusion },
               ].map((s) => (
                 <label
                   key={s.id}
