@@ -170,7 +170,7 @@ export default function CalendarGrid({
                     hasActiveBooking ? "text-primary-foreground/70" : "text-price"
                   )}
                 >
-                  {(price / 1000).toFixed(0)}к
+                  {price.toLocaleString("ru-RU")}
                 </span>
               )}
               {/* Red stripe for cancelled bookings */}

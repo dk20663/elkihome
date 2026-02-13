@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function PriceSettings({ houses, onClose }: Props) {
+  const queryClient = useQueryClient();
   const [prices, setPrices] = useState(
     houses.map((h) => ({
       id: h.id,
@@ -43,6 +45,7 @@ export default function PriceSettings({ houses, onClose }: Props) {
         if (error) throw error;
       }
       toast.success("Цены обновлены");
+      await queryClient.invalidateQueries({ queryKey: ["houses"] });
       onClose();
     } catch (err: any) {
       toast.error(err.message);
