@@ -18,7 +18,6 @@ export function useBookings() {
     },
   });
 
-  // Realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel("bookings-realtime")
@@ -68,11 +67,14 @@ export function useUpdateBooking() {
   });
 }
 
-export function useDeleteBooking() {
+export function useCancelBooking() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("bookings").delete().eq("id", id);
+      const { error } = await supabase
+        .from("bookings")
+        .update({ cancelled: true })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookings"] }),

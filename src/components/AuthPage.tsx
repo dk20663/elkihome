@@ -1,35 +1,10 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Home, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
-import { Home, LogIn } from "lucide-react";
 
 export default function AuthPage() {
-  const { signIn, signUp } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      if (isSignUp) {
-        await signUp(email, password);
-        toast.success("Проверьте почту для подтверждения регистрации");
-      } else {
-        await signIn(email, password);
-        toast.success("Добро пожаловать!");
-      }
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const tg = (window as any).Telegram?.WebApp;
+  const hasTelegram = !!tg?.initData;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -41,41 +16,23 @@ export default function AuthPage() {
           <CardTitle className="text-xl font-bold">
             Управление бронями
           </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {isSignUp ? "Создайте аккаунт" : "Войдите в систему"}
-          </p>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="h-11"
-            />
-            <Input
-              type="password"
-              placeholder="Пароль"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="h-11"
-            />
-            <Button type="submit" className="w-full h-11" disabled={loading}>
-              <LogIn className="mr-2 h-4 w-4" />
-              {loading ? "..." : isSignUp ? "Зарегистрироваться" : "Войти"}
-            </Button>
-            <button
-              type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {isSignUp ? "Уже есть аккаунт? Войти" : "Нет аккаунта? Зарегистрироваться"}
-            </button>
-          </form>
+        <CardContent className="text-center space-y-4">
+          {hasTelegram ? (
+            <div className="flex items-center gap-2 justify-center text-sm text-muted-foreground">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <span>Ваш аккаунт не имеет доступа к системе</span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Откройте через Telegram Mini App
+              </p>
+              <p className="text-xs text-muted-foreground/70">
+                Доступ только для авторизованных пользователей
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

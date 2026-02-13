@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import type { Booking, House } from "@/lib/types";
-import { Edit, Trash2, Phone, User, Calendar, MessageSquare } from "lucide-react";
+import { Edit, Ban, Phone, User, Calendar, MessageSquare, Users, Globe } from "lucide-react";
 
 interface Props {
   booking: Booking | null;
@@ -17,10 +17,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onEdit: () => void;
-  onDelete: () => void;
+  onCancel: () => void;
 }
 
-export default function BookingDetail({ booking, house, open, onClose, onEdit, onDelete }: Props) {
+export default function BookingDetail({ booking, house, open, onClose, onEdit, onCancel }: Props) {
   if (!booking || !house) return null;
 
   const nights = differenceInDays(parseISO(booking.check_out), parseISO(booking.check_in));
@@ -29,6 +29,7 @@ export default function BookingDetail({ booking, house, open, onClose, onEdit, o
     booking.plunge_pool && "Купель",
     booking.bath_brooms && "Веники в баню",
     booking.fir_infusion && "Пихтовая запарка",
+    booking.citrus_infusion && "Цитрусовая запарка",
   ].filter(Boolean);
 
   return (
@@ -44,7 +45,25 @@ export default function BookingDetail({ booking, house, open, onClose, onEdit, o
             Дом {house.name}
           </SheetTitle>
         </SheetHeader>
-        <div className="space-y-4 pt-4">
+        <div className="space-y-4 pt-2">
+          {/* Services right under house name, same font size */}
+          {services.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {services.map((s) => (
+                <span key={s as string} className="text-base font-semibold">
+                  {s}
+                  {services.indexOf(s as string) < services.length - 1 ? " ·" : ""}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {booking.cancelled && (
+            <Badge variant="destructive" className="text-xs">
+              ОТМЕНЕНО
+            </Badge>
+          )}
+
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <span>
@@ -57,6 +76,20 @@ export default function BookingDetail({ booking, house, open, onClose, onEdit, o
           <div className="text-2xl font-bold text-price">
             {booking.total_price.toLocaleString("ru-RU")} ₽
           </div>
+
+          {booking.guest_count > 1 && (
+            <div className="flex items-center gap-2 text-sm">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              Гостей: {booking.guest_count}
+            </div>
+          )}
+
+          {booking.source && (
+            <div className="flex items-center gap-2 text-sm">
+              <Globe className="h-4 w-4 text-muted-foreground" />
+              {booking.source}
+            </div>
+          )}
 
           {booking.guest_name && (
             <div className="flex items-center gap-2 text-sm">
@@ -81,23 +114,15 @@ export default function BookingDetail({ booking, house, open, onClose, onEdit, o
             </div>
           )}
 
-          {services.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {services.map((s) => (
-                <Badge key={s as string} variant="secondary" className="text-xs">
-                  {s}
-                </Badge>
-              ))}
-            </div>
-          )}
-
           <div className="flex gap-2 pt-2">
             <Button variant="outline" className="flex-1" onClick={onEdit}>
               <Edit className="mr-1 h-4 w-4" /> Редактировать
             </Button>
-            <Button variant="destructive" className="flex-1" onClick={onDelete}>
-              <Trash2 className="mr-1 h-4 w-4" /> Удалить
-            </Button>
+            {!booking.cancelled && (
+              <Button variant="destructive" className="flex-1" onClick={onCancel}>
+                <Ban className="mr-1 h-4 w-4" /> Отмена заезда
+              </Button>
+            )}
           </div>
         </div>
       </SheetContent>

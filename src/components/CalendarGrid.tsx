@@ -13,6 +13,7 @@ import {
   isAfter,
   isSameDay,
   parseISO,
+  getDay,
 } from "date-fns";
 import { ru } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -41,15 +42,19 @@ function getBookingsForDate(date: Date, bookings: Booking[]) {
   });
 }
 
+// Weekdays: Mon-Thu, Weekends: Fri-Sun
+function isWeekdayCustom(date: Date): boolean {
+  const day = getDay(date);
+  return day >= 1 && day <= 4; // Mon=1, Thu=4
+}
+
 function getPriceForDate(date: Date, houses: House[], filter: HouseFilter): number | null {
-  const house = filter === "green" 
+  if (filter === "all") return null; // No price in "all" view
+  const house = filter === "green"
     ? houses.find(h => h.name === "GREEN")
-    : filter === "black"
-    ? houses.find(h => h.name === "BLACK")
-    : houses[0];
-  
+    : houses.find(h => h.name === "BLACK");
   if (!house) return null;
-  return isWeekend(date) ? house.base_price_weekend : house.base_price_weekday;
+  return isWeekdayCustom(date) ? house.base_price_weekday : house.base_price_weekend;
 }
 
 export default function CalendarGrid({
@@ -95,13 +100,17 @@ export default function CalendarGrid({
           const today = isToday(day);
           const dayBookings = getBookingsForDate(day, filteredBookings);
           const allDayBookings = getBookingsForDate(day, bookings);
-          
+
+          // Check for active (non-cancelled) bookings
           const greenBooked = allDayBookings.some(
-            (b) => greenHouse && b.house_id === greenHouse.id
+            (b) => greenHouse && b.house_id === greenHouse.id && !b.cancelled
           );
           const blackBooked = allDayBookings.some(
-            (b) => blackHouse && b.house_id === blackHouse.id
+            (b) => blackHouse && b.house_id === blackHouse.id && !b.cancelled
           );
+
+          // Check for cancelled bookings
+          const hasCancelled = dayBookings.some((b) => b.cancelled);
 
           const isInRange =
             selectedRange.start &&
@@ -114,7 +123,6 @@ export default function CalendarGrid({
 
           const price = getPriceForDate(day, houses, filter);
 
-          // Determine cell background class
           let cellBg = "";
           if (filter === "all") {
             if (greenBooked && blackBooked) cellBg = "calendar-cell-both";
@@ -126,7 +134,7 @@ export default function CalendarGrid({
             if (blackBooked) cellBg = "calendar-cell-black-only";
           }
 
-          const hasBooking = dayBookings.length > 0;
+          const hasActiveBooking = dayBookings.some((b) => !b.cancelled);
 
           return (
             <button
@@ -136,7 +144,7 @@ export default function CalendarGrid({
               className={cn(
                 "relative flex flex-col items-center justify-center rounded-lg aspect-square text-xs transition-all",
                 !inMonth && "opacity-20 pointer-events-none",
-                inMonth && !hasBooking && "hover:bg-secondary",
+                inMonth && !hasActiveBooking && "hover:bg-secondary",
                 today && "ring-1 ring-primary/30",
                 isInRange && "bg-primary/10",
                 isRangeStart && "ring-2 ring-primary",
@@ -155,15 +163,19 @@ export default function CalendarGrid({
               >
                 {format(day, "d")}
               </span>
-              {inMonth && price && (
+              {inMonth && price && filter !== "all" && (
                 <span
                   className={cn(
                     "text-[8px] leading-none mt-0.5 font-medium",
-                    hasBooking ? "text-primary-foreground/70" : "text-price"
+                    hasActiveBooking ? "text-primary-foreground/70" : "text-price"
                   )}
                 >
                   {(price / 1000).toFixed(0)}к
                 </span>
+              )}
+              {/* Red stripe for cancelled bookings */}
+              {inMonth && hasCancelled && (
+                <span className="absolute bottom-0.5 left-1 right-1 h-[2px] rounded-full bg-destructive" />
               )}
             </button>
           );

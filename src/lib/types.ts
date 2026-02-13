@@ -16,10 +16,14 @@ export interface Booking {
   guest_name: string;
   guest_phone: string;
   comment: string;
+  source: string;
+  guest_count: number;
+  cancelled: boolean;
   sauna: boolean;
   plunge_pool: boolean;
   bath_brooms: boolean;
   fir_infusion: boolean;
+  citrus_infusion: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -43,8 +47,11 @@ export interface BookingFormData {
   guest_name: string;
   guest_phone: string;
   comment: string;
+  source: string;
+  guest_count: number;
   sauna: boolean;
   plunge_pool: boolean;
   bath_brooms: boolean;
   fir_infusion: boolean;
+  citrus_infusion: boolean;
 }

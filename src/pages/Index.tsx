@@ -9,27 +9,29 @@ import MonthStats from "@/components/MonthStats";
 import BookingForm from "@/components/BookingForm";
 import BookingDetail from "@/components/BookingDetail";
 import PublicCalendar from "@/components/PublicCalendar";
+import PriceSettings from "@/components/PriceSettings";
 import AuthPage from "@/components/AuthPage";
 import { useAuth } from "@/hooks/useAuth";
 import { useHouses } from "@/hooks/useHouses";
-import { useBookings, useCreateBooking, useUpdateBooking, useDeleteBooking } from "@/hooks/useBookings";
+import { useBookings, useCreateBooking, useUpdateBooking, useCancelBooking } from "@/hooks/useBookings";
 import type { HouseFilter as HouseFilterType, Booking, BookingFormData } from "@/lib/types";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Index() {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, telegramUser, loading: authLoading, signOut } = useAuth();
   const { data: houses = [], isLoading: housesLoading } = useHouses();
   const { data: bookings = [], isLoading: bookingsLoading } = useBookings();
   const createBooking = useCreateBooking();
   const updateBooking = useUpdateBooking();
-  const deleteBooking = useDeleteBooking();
+  const cancelBooking = useCancelBooking();
 
   const [month, setMonth] = useState(new Date());
   const [filter, setFilter] = useState<HouseFilterType>("all");
   const [showForm, setShowForm] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [showPublic, setShowPublic] = useState(false);
+  const [showPriceSettings, setShowPriceSettings] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [editBooking, setEditBooking] = useState<Booking | null>(null);
   const [selectedRange, setSelectedRange] = useState<{ start: Date | null; end: Date | null }>({
@@ -39,14 +41,12 @@ export default function Index() {
 
   const handleDateClick = useCallback(
     (date: Date) => {
-      // Check if date has bookings
       const dayBookings = bookings.filter((b) => {
         const checkIn = parseISO(b.check_in);
         const checkOut = parseISO(b.check_out);
         return (isAfter(date, checkIn) || isSameDay(date, checkIn)) && isBefore(date, checkOut);
       });
 
-      // Filter by currently selected house filter
       const greenHouse = houses.find((h) => h.name === "GREEN");
       const blackHouse = houses.find((h) => h.name === "BLACK");
       const filtered = dayBookings.filter((b) => {
@@ -61,7 +61,6 @@ export default function Index() {
         return;
       }
 
-      // Range selection for new booking
       if (!selectedRange.start || selectedRange.end) {
         setSelectedRange({ start: date, end: null });
       } else {
@@ -100,11 +99,11 @@ export default function Index() {
     }
   };
 
-  const handleDeleteBooking = async () => {
+  const handleCancelBooking = async () => {
     if (!selectedBooking) return;
     try {
-      await deleteBooking.mutateAsync(selectedBooking.id);
-      toast.success("Бронь удалена");
+      await cancelBooking.mutateAsync(selectedBooking.id);
+      toast.success("Заезд отменён");
       setShowDetail(false);
       setSelectedBooking(null);
     } catch (err: any) {
@@ -131,17 +130,24 @@ export default function Index() {
     return <PublicCalendar bookings={bookings} houses={houses} onClose={() => setShowPublic(false)} />;
   }
 
+  if (showPriceSettings) {
+    return <PriceSettings houses={houses} onClose={() => setShowPriceSettings(false)} />;
+  }
+
   const isLoading = housesLoading || bookingsLoading;
+  const displayName = telegramUser?.first_name || telegramUser?.username || user.email;
 
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto flex flex-col">
-      {/* Header */}
       <header className="flex items-center justify-between px-4 pt-4 pb-2">
         <div>
           <h1 className="text-lg font-bold leading-tight">Бронирования</h1>
-          <p className="text-[10px] text-muted-foreground">{user.email}</p>
+          <p className="text-[10px] text-muted-foreground">{displayName}</p>
         </div>
         <div className="flex gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowPriceSettings(true)} title="Настройки цен">
+            <Settings className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowPublic(true)} title="Публичный вид">
             <Eye className="h-4 w-4" />
           </Button>
@@ -151,12 +157,10 @@ export default function Index() {
         </div>
       </header>
 
-      {/* Filter */}
       <div className="px-4 mb-3">
         <HouseFilter value={filter} onChange={setFilter} />
       </div>
 
-      {/* Month Navigation */}
       <div className="flex items-center justify-between px-4 mb-2">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonth(subMonths(month, 1))}>
           <ChevronLeft className="h-5 w-5" />
@@ -169,7 +173,6 @@ export default function Index() {
         </Button>
       </div>
 
-      {/* Calendar */}
       <div className="px-4 mb-3">
         {isLoading ? (
           <Skeleton className="h-64 rounded-2xl" />
@@ -187,7 +190,6 @@ export default function Index() {
         )}
       </div>
 
-      {/* Legend */}
       <div className="flex gap-3 justify-center mb-3 text-[10px] text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="h-2.5 w-2.5 rounded bg-house-green" /> GREEN
@@ -200,14 +202,12 @@ export default function Index() {
         </span>
       </div>
 
-      {/* Stats */}
       <div className="px-4 mb-4">
         {!isLoading && (
           <MonthStats month={month} bookings={bookings} houses={houses} filter={filter} />
         )}
       </div>
 
-      {/* FAB */}
       <div className="fixed bottom-6 right-6 z-50 max-w-md">
         <Button
           size="lg"
@@ -222,7 +222,6 @@ export default function Index() {
         </Button>
       </div>
 
-      {/* Booking Form */}
       <BookingForm
         open={showForm}
         onClose={() => {
@@ -235,9 +234,9 @@ export default function Index() {
         initialData={editBooking}
         defaultDates={selectedRange}
         loading={createBooking.isPending || updateBooking.isPending}
+        currentFilter={filter}
       />
 
-      {/* Booking Detail */}
       <BookingDetail
         booking={selectedBooking}
         house={selectedHouse}
@@ -251,7 +250,7 @@ export default function Index() {
           setShowDetail(false);
           setShowForm(true);
         }}
-        onDelete={handleDeleteBooking}
+        onCancel={handleCancelBooking}
       />
     </div>
   );
