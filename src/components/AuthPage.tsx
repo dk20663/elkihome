@@ -29,7 +29,7 @@ export default function AuthPage() {
                 Для доступа откройте приложение через Telegram
               </p>
               <a
-                href="https://t.me/ElkiHomeBot/app"
+                href="https://t.me/ElkiHome24_Bot/app"
                 target="_blank"
                 rel="noopener noreferrer"
               >
