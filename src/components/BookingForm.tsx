@@ -22,7 +22,7 @@ import type { House, BookingFormData, Booking, HouseFilter } from "@/lib/types";
 import { toast } from "sonner";
 import { Save, X } from "lucide-react";
 
-const SOURCES = ["ВК", "Инстаграм", "Звонок", "Авито", "Суточно", "Циан", "Другое"];
+const SOURCES = ["ВК", "Инстаграм", "Звонок", "Авито", "Суточно", "Циан", "Телеграм", "Max", "Другое"];
 const GUEST_COUNTS = [1, 2, 3, 4, 5, 6];
 
 interface Props {

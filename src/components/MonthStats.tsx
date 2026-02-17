@@ -26,7 +26,7 @@ export default function MonthStats({ month, bookings, houses, filter }: Props) {
         const checkIn = parseISO(b.check_in);
         const checkOut = parseISO(b.check_out);
         const inRange = (isAfter(day, checkIn) || isSameDay(day, checkIn)) && isBefore(day, checkOut);
-        if (!inRange) return;
+        if (!inRange || b.cancelled) return;
         if (greenHouse && b.house_id === greenHouse.id) greenOccupied++;
         if (blackHouse && b.house_id === blackHouse.id) blackOccupied++;
       });

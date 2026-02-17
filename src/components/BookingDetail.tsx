@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import type { Booking, House } from "@/lib/types";
-import { Edit, Ban, Phone, User, Calendar, MessageSquare, Users, Globe } from "lucide-react";
+import { Edit, Ban, Phone, User, Calendar, MessageSquare, Users, Globe, RotateCcw } from "lucide-react";
 
 interface Props {
   booking: Booking | null;
@@ -18,9 +18,15 @@ interface Props {
   onClose: () => void;
   onEdit: () => void;
   onCancel: () => void;
+  cancelledBookings?: Booking[];
+  houses?: House[];
+  onShowCancelled?: () => void;
 }
 
-export default function BookingDetail({ booking, house, open, onClose, onEdit, onCancel }: Props) {
+export default function BookingDetail({
+  booking, house, open, onClose, onEdit, onCancel,
+  cancelledBookings = [], houses = [], onShowCancelled,
+}: Props) {
   if (!booking || !house) return null;
 
   const nights = differenceInDays(parseISO(booking.check_out), parseISO(booking.check_in));
@@ -46,7 +52,6 @@ export default function BookingDetail({ booking, house, open, onClose, onEdit, o
           </SheetTitle>
         </SheetHeader>
         <div className="space-y-4 pt-2">
-          {/* Services right under house name, same font size */}
           {services.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {services.map((s) => (
@@ -124,6 +129,18 @@ export default function BookingDetail({ booking, house, open, onClose, onEdit, o
               </Button>
             )}
           </div>
+
+          {/* Cancelled bookings buttons */}
+          {cancelledBookings.length > 0 && onShowCancelled && (
+            <Button
+              variant="outline"
+              className="w-full border-destructive/30 text-destructive hover:bg-destructive/5"
+              onClick={onShowCancelled}
+            >
+              <RotateCcw className="mr-1 h-4 w-4" />
+              Отменённые заезды ({cancelledBookings.length})
+            </Button>
+          )}
         </div>
       </SheetContent>
     </Sheet>
