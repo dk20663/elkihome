@@ -10,6 +10,9 @@ import BookingForm from "@/components/BookingForm";
 import BookingDetail from "@/components/BookingDetail";
 import PublicCalendar from "@/components/PublicCalendar";
 import PriceSettings from "@/components/PriceSettings";
+import RoleSelection from "@/components/RoleSelection";
+import GuestView from "@/components/GuestView";
+import CancelledBookingsSheet from "@/components/CancelledBookingsSheet";
 import AuthPage from "@/components/AuthPage";
 import { useAuth } from "@/hooks/useAuth";
 import { useHouses } from "@/hooks/useHouses";
@@ -20,6 +23,32 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Index() {
+  const [role, setRole] = useState<"guest" | "admin" | null>(
+    () => localStorage.getItem("elkihome_role") as "guest" | "admin" | null
+  );
+
+  const handleSelectRole = (r: "guest" | "admin") => {
+    localStorage.setItem("elkihome_role", r);
+    setRole(r);
+  };
+
+  const handleBackToRoleSelect = () => {
+    localStorage.removeItem("elkihome_role");
+    setRole(null);
+  };
+
+  if (!role) {
+    return <RoleSelection onSelectRole={handleSelectRole} />;
+  }
+
+  if (role === "guest") {
+    return <GuestView onBack={handleBackToRoleSelect} />;
+  }
+
+  return <AdminView onBackToRoles={handleBackToRoleSelect} />;
+}
+
+function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
   const { user, telegramUser, loading: authLoading, signOut } = useAuth();
   const { data: houses = [], isLoading: housesLoading } = useHouses();
   const { data: bookings = [], isLoading: bookingsLoading } = useBookings();
@@ -39,6 +68,8 @@ export default function Index() {
     start: null,
     end: null,
   });
+  const [cancelledForDate, setCancelledForDate] = useState<Booking[]>([]);
+  const [showCancelled, setShowCancelled] = useState(false);
 
   const handleDateClick = useCallback(
     (date: Date) => {
@@ -56,12 +87,25 @@ export default function Index() {
         return blackHouse && b.house_id === blackHouse.id;
       });
 
-      if (filtered.length > 0) {
-        setSelectedBooking(filtered[0]);
+      const activeBookings = filtered.filter((b) => !b.cancelled);
+      const cancelledBookings = filtered.filter((b) => b.cancelled);
+
+      // If active bookings exist, show the first one
+      if (activeBookings.length > 0) {
+        setSelectedBooking(activeBookings[0]);
         setShowDetail(true);
+        // Also store cancelled for access via BookingDetail
+        setCancelledForDate(cancelledBookings);
         return;
       }
 
+      // If only cancelled bookings, show cancelled sheet + treat as free
+      if (cancelledBookings.length > 0) {
+        setCancelledForDate(cancelledBookings);
+        setShowCancelled(true);
+      }
+
+      // Range selection for new booking
       if (!selectedRange.start || selectedRange.end) {
         setSelectedRange({ start: date, end: null });
       } else {
@@ -179,7 +223,10 @@ export default function Index() {
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowPublic(true)} title="Публичный вид">
             <Eye className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut} title="Выйти">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+            signOut();
+            onBackToRoles();
+          }} title="Выйти">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
@@ -279,6 +326,19 @@ export default function Index() {
           setShowForm(true);
         }}
         onCancel={handleCancelBooking}
+        cancelledBookings={cancelledForDate}
+        houses={houses}
+        onShowCancelled={() => {
+          setShowDetail(false);
+          setShowCancelled(true);
+        }}
+      />
+
+      <CancelledBookingsSheet
+        bookings={cancelledForDate}
+        houses={houses}
+        open={showCancelled}
+        onClose={() => setShowCancelled(false)}
       />
     </div>
   );

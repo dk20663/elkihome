@@ -8,14 +8,12 @@ import {
   format,
   isSameMonth,
   isToday,
-  isWeekend,
   isBefore,
   isAfter,
   isSameDay,
   parseISO,
   getDay,
 } from "date-fns";
-import { ru } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { Booking, House, HouseFilter } from "@/lib/types";
 
@@ -40,21 +38,6 @@ function getBookingsForDate(date: Date, bookings: Booking[]) {
       isBefore(date, checkOut)
     );
   });
-}
-
-// Weekdays: Mon-Thu, Weekends: Fri-Sun
-function isWeekdayCustom(date: Date): boolean {
-  const day = getDay(date);
-  return day >= 1 && day <= 4; // Mon=1, Thu=4
-}
-
-function getPriceForDate(date: Date, houses: House[], filter: HouseFilter): number | null {
-  if (filter === "all") return null; // No price in "all" view
-  const house = filter === "green"
-    ? houses.find(h => h.name === "GREEN")
-    : houses.find(h => h.name === "BLACK");
-  if (!house) return null;
-  return isWeekdayCustom(date) ? house.base_price_weekday : house.base_price_weekend;
 }
 
 export default function CalendarGrid({
@@ -109,8 +92,8 @@ export default function CalendarGrid({
             (b) => blackHouse && b.house_id === blackHouse.id && !b.cancelled
           );
 
-          // Check for cancelled bookings
-          const hasCancelled = dayBookings.some((b) => b.cancelled);
+          // Check for cancelled bookings — only show in admin view
+          const hasCancelled = !isPublicView && dayBookings.some((b) => b.cancelled);
 
           const isInRange =
             selectedRange.start &&
@@ -120,8 +103,6 @@ export default function CalendarGrid({
 
           const isRangeStart = selectedRange.start && isSameDay(day, selectedRange.start);
           const isRangeEnd = selectedRange.end && isSameDay(day, selectedRange.end);
-
-          const price = getPriceForDate(day, houses, filter);
 
           let cellBg = "";
           if (filter === "all") {
@@ -163,17 +144,7 @@ export default function CalendarGrid({
               >
                 {format(day, "d")}
               </span>
-              {inMonth && price && filter !== "all" && (
-                <span
-                  className={cn(
-                    "text-[8px] leading-none mt-0.5 font-medium",
-                    hasActiveBooking ? "text-primary-foreground/70" : "text-price"
-                  )}
-                >
-                  {price.toLocaleString("ru-RU")}
-                </span>
-              )}
-              {/* Red stripe for cancelled bookings */}
+              {/* Red stripe for cancelled bookings — admin only */}
               {inMonth && hasCancelled && (
                 <span className="absolute bottom-0.5 left-1 right-1 h-[2px] rounded-full bg-destructive" />
               )}
