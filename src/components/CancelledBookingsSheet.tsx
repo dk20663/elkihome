@@ -9,25 +9,40 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import type { Booking, House } from "@/lib/types";
-import { RotateCcw, Calendar, User, Phone, MessageSquare, Users, Globe } from "lucide-react";
+import { RotateCcw, Calendar, User, Phone, MessageSquare, Users, Globe, Plus } from "lucide-react";
 
 interface Props {
   bookings: Booking[];
   houses: House[];
   open: boolean;
   onClose: () => void;
+  onAddBooking?: () => void;
 }
 
-export default function CancelledBookingsSheet({ bookings, houses, open, onClose }: Props) {
+export default function CancelledBookingsSheet({ bookings, houses, open, onClose, onAddBooking }: Props) {
   if (bookings.length === 0) return null;
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] overflow-y-auto">
+      <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Отменённые заезды</SheetTitle>
+          <SheetTitle className="flex items-center gap-2">
+            <RotateCcw className="h-4 w-4 text-destructive" />
+            Отменённые заезды ({bookings.length})
+          </SheetTitle>
         </SheetHeader>
-        <div className="space-y-3 pt-3">
+
+        {/* Add new booking button */}
+        {onAddBooking && (
+          <div className="py-3">
+            <Button className="w-full" onClick={() => { onClose(); onAddBooking(); }}>
+              <Plus className="mr-2 h-4 w-4" />
+              Добавить бронирование на эту дату
+            </Button>
+          </div>
+        )}
+
+        <div className="space-y-3 pb-4">
           {bookings.map((booking) => {
             const house = houses.find((h) => h.id === booking.house_id);
             const nights = differenceInDays(
@@ -128,3 +143,4 @@ export default function CancelledBookingsSheet({ bookings, houses, open, onClose
     </Sheet>
   );
 }
+
