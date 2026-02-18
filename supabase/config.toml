@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.export-bookings]
 verify_jwt = false
+
+[functions.send-telegram-export]
+verify_jwt = false
+
+[functions.daily-backup]
+verify_jwt = false

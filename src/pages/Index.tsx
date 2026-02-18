@@ -50,6 +50,7 @@ export default function Index() {
 
 function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
   const { user, telegramUser, loading: authLoading, signOut } = useAuth();
+
   const { data: houses = [], isLoading: housesLoading } = useHouses();
   const { data: bookings = [], isLoading: bookingsLoading } = useBookings();
   const createBooking = useCreateBooking();
@@ -70,6 +71,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
   });
   const [cancelledForDate, setCancelledForDate] = useState<Booking[]>([]);
   const [showCancelled, setShowCancelled] = useState(false);
+  const [cancelledClickedDate, setCancelledClickedDate] = useState<Date | null>(null);
 
   const handleDateClick = useCallback(
     (date: Date) => {
@@ -99,13 +101,17 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
         return;
       }
 
-      // If only cancelled bookings, show cancelled sheet + treat as free
+      // If only cancelled bookings, store them and show cancelled sheet (not form yet)
       if (cancelledBookings.length > 0) {
         setCancelledForDate(cancelledBookings);
+        setCancelledClickedDate(date);
         setShowCancelled(true);
+        // Reset range so next click starts fresh
+        setSelectedRange({ start: null, end: null });
+        return;
       }
 
-      // Range selection for new booking
+      // Range selection for new booking (only when no cancelled bookings on this date)
       if (!selectedRange.start || selectedRange.end) {
         setSelectedRange({ start: date, end: null });
       } else {
@@ -194,23 +200,18 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
             try {
               const { data: { session } } = await supabase.auth.getSession();
               const res = await fetch(
-                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-bookings`,
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-telegram-export`,
                 {
+                  method: "POST",
                   headers: {
                     Authorization: `Bearer ${session?.access_token}`,
                     apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                    "Content-Type": "application/json",
                   },
                 }
               );
               if (!res.ok) throw new Error("Export failed");
-              const blob = await res.blob();
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "bookings.csv";
-              a.click();
-              URL.revokeObjectURL(url);
-              toast.success("Файл загружен");
+              toast.success("Файл отправлен в Телеграм");
             } catch (err: any) {
               toast.error(err.message);
             }
@@ -228,6 +229,9 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
             onBackToRoles();
           }} title="Выйти">
             <LogOut className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBackToRoles} title="На главную">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           </Button>
         </div>
       </header>
@@ -339,6 +343,11 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
         houses={houses}
         open={showCancelled}
         onClose={() => setShowCancelled(false)}
+        onAddBooking={() => {
+          setEditBooking(null);
+          setSelectedRange({ start: cancelledClickedDate, end: null });
+          setShowForm(true);
+        }}
       />
     </div>
   );
