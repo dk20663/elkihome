@@ -13,6 +13,8 @@ import PriceSettings from "@/components/PriceSettings";
 import RoleSelection from "@/components/RoleSelection";
 import GuestView from "@/components/GuestView";
 import CancelledBookingsSheet from "@/components/CancelledBookingsSheet";
+import DateActionDialog from "@/components/DateActionDialog";
+import DatePriceEditor from "@/components/DatePriceEditor";
 import AuthPage from "@/components/AuthPage";
 import { useAuth } from "@/hooks/useAuth";
 import { useHouses } from "@/hooks/useHouses";
@@ -72,7 +74,8 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
   const [cancelledForDate, setCancelledForDate] = useState<Booking[]>([]);
   const [showCancelled, setShowCancelled] = useState(false);
   const [cancelledClickedDate, setCancelledClickedDate] = useState<Date | null>(null);
-
+  const [showDateAction, setShowDateAction] = useState(false);
+  const [showPriceEditor, setShowPriceEditor] = useState(false);
   const handleDateClick = useCallback(
     (date: Date) => {
       const dayBookings = bookings.filter((b) => {
@@ -120,7 +123,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
         } else {
           setSelectedRange({ start: selectedRange.start, end: date });
         }
-        setShowForm(true);
+        setShowDateAction(true);
       }
     },
     [bookings, houses, filter, selectedRange]
@@ -183,6 +186,19 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
 
   if (showPriceSettings) {
     return <PriceSettings houses={houses} onClose={() => setShowPriceSettings(false)} />;
+  }
+
+  if (showPriceEditor && selectedRange.start) {
+    return (
+      <DatePriceEditor
+        houses={houses}
+        dateRange={{ start: selectedRange.start, end: selectedRange.end }}
+        onClose={() => {
+          setShowPriceEditor(false);
+          setSelectedRange({ start: null, end: null });
+        }}
+      />
+    );
   }
 
   const isLoading = housesLoading || bookingsLoading;
@@ -347,6 +363,21 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
           setEditBooking(null);
           setSelectedRange({ start: cancelledClickedDate, end: null });
           setShowForm(true);
+        }}
+      />
+
+      <DateActionDialog
+        open={showDateAction}
+        onClose={() => {
+          setShowDateAction(false);
+          setSelectedRange({ start: null, end: null });
+        }}
+        dateRange={selectedRange}
+        onAddBooking={() => {
+          setShowForm(true);
+        }}
+        onEditPrice={() => {
+          setShowPriceEditor(true);
         }}
       />
     </div>

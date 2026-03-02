@@ -75,7 +75,7 @@ export default function GuestView({ onBack }: Props) {
         </Button>
         <div>
           <h1 className="text-lg font-bold leading-tight">Календарь загрузки</h1>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm font-medium text-foreground/70">
             Нажмите на дату, чтобы увидеть цены
           </p>
         </div>
@@ -127,6 +127,7 @@ export default function GuestView({ onBack }: Props) {
         filter={filter}
         open={showPrice}
         onClose={() => setShowPrice(false)}
+        bookings={bookings}
       />
     </div>
   );
