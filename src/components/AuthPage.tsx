@@ -1,14 +1,23 @@
 import { Button } from "@/components/ui/button";
-import { Home, AlertTriangle } from "lucide-react";
+import { Home, AlertTriangle, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function AuthPage() {
+interface AuthPageProps {
+  onBack?: () => void;
+}
+
+export default function AuthPage({ onBack }: AuthPageProps) {
   const tg = (window as any).Telegram?.WebApp;
   const hasTelegram = !!tg?.initData;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm shadow-xl border-border/50">
+      <Card className="w-full max-w-sm shadow-xl border-border/50 relative">
+        {onBack && (
+          <Button variant="ghost" size="icon" className="absolute top-3 left-3 h-8 w-8" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        )}
         <CardHeader className="text-center space-y-3 pb-2">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
             <Home className="h-7 w-7 text-primary-foreground" />
