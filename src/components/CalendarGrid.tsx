@@ -68,10 +68,13 @@ export default function CalendarGrid({
   return (
     <div>
       <div className="grid grid-cols-7 gap-0.5 mb-1">
-        {WEEKDAYS.map((d) => (
+        {WEEKDAYS.map((d, i) => (
           <div
             key={d}
-            className="text-center text-[10px] font-medium text-muted-foreground py-1"
+            className={cn(
+              "text-center text-[10px] font-medium text-muted-foreground py-1",
+              (i === 5 || i === 6) && "font-bold text-foreground/70"
+            )}
           >
             {d}
           </div>
@@ -83,6 +86,8 @@ export default function CalendarGrid({
           const today = isToday(day);
           const dayBookings = getBookingsForDate(day, filteredBookings);
           const allDayBookings = getBookingsForDate(day, bookings);
+          const dayOfWeek = getDay(day); // 0=Sun, 6=Sat
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
           // Check for active (non-cancelled) bookings
           const greenBooked = allDayBookings.some(
@@ -104,15 +109,17 @@ export default function CalendarGrid({
           const isRangeStart = selectedRange.start && isSameDay(day, selectedRange.start);
           const isRangeEnd = selectedRange.end && isSameDay(day, selectedRange.end);
 
+          // Determine cell background based on filter
           let cellBg = "";
           if (filter === "all") {
             if (greenBooked && blackBooked) cellBg = "calendar-cell-both";
             else if (greenBooked) cellBg = "calendar-cell-green-only";
             else if (blackBooked) cellBg = "calendar-cell-black-only";
           } else if (filter === "green") {
-            if (greenBooked) cellBg = "calendar-cell-green-only";
+            // When single house filtered, use full color
+            if (greenBooked) cellBg = "calendar-cell-green-full";
           } else {
-            if (blackBooked) cellBg = "calendar-cell-black-only";
+            if (blackBooked) cellBg = "calendar-cell-black-full";
           }
 
           const hasActiveBooking = dayBookings.some((b) => !b.cancelled);
@@ -126,6 +133,7 @@ export default function CalendarGrid({
                 "relative flex flex-col items-center justify-center rounded-lg aspect-square text-xs transition-all",
                 !inMonth && "opacity-20 pointer-events-none",
                 inMonth && !hasActiveBooking && "hover:bg-secondary",
+                inMonth && isWeekend && !cellBg && "bg-muted/40",
                 today && "ring-1 ring-primary/30",
                 isInRange && "bg-primary/10",
                 isRangeStart && "ring-2 ring-primary",
@@ -138,8 +146,10 @@ export default function CalendarGrid({
                   "font-semibold leading-none",
                   today && "text-primary",
                   (greenBooked && blackBooked) && "text-primary-foreground",
-                  (greenBooked && !blackBooked && filter !== "black") && "text-primary-foreground",
-                  (blackBooked && !greenBooked && filter !== "green") && "text-primary-foreground"
+                  (filter === "green" && greenBooked) && "text-primary-foreground",
+                  (filter === "black" && blackBooked) && "text-primary-foreground",
+                  (filter === "all" && greenBooked && !blackBooked) && "text-primary-foreground",
+                  (filter === "all" && blackBooked && !greenBooked) && "text-primary-foreground"
                 )}
               >
                 {format(day, "d")}

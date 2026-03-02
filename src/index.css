@@ -144,4 +144,10 @@
   .calendar-cell-black-only {
     background: linear-gradient(315deg, hsl(var(--house-black)) 50%, hsl(var(--background)) 50%);
   }
+  .calendar-cell-green-full {
+    background: hsl(var(--house-green));
+  }
+  .calendar-cell-black-full {
+    background: hsl(var(--house-black));
+  }
 }
