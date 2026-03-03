@@ -9,6 +9,9 @@ export function useBookings() {
   const query = useQuery({
     queryKey: ["bookings"],
     queryFn: async () => {
+      // Ensure we have a valid session before querying
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return [];
       const { data, error } = await supabase
         .from("bookings")
         .select("*, houses(*)")
@@ -16,6 +19,8 @@ export function useBookings() {
       if (error) throw error;
       return data as Booking[];
     },
+    refetchOnMount: true,
+    staleTime: 0,
   });
 
   useEffect(() => {

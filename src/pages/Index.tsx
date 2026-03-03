@@ -72,6 +72,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
     end: null,
   });
   const [cancelledForDate, setCancelledForDate] = useState<Booking[]>([]);
+  const [allActiveDateBookings, setAllActiveDateBookings] = useState<Booking[]>([]);
   const [showCancelled, setShowCancelled] = useState(false);
   const [cancelledClickedDate, setCancelledClickedDate] = useState<Date | null>(null);
   const [showDateAction, setShowDateAction] = useState(false);
@@ -95,11 +96,12 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
       const activeBookings = filtered.filter((b) => !b.cancelled);
       const cancelledBookings = filtered.filter((b) => b.cancelled);
 
-      // If active bookings exist, show the first one
+      // If active bookings exist, show them
       if (activeBookings.length > 0) {
+        // In "all" mode with multiple bookings, show all via a list
         setSelectedBooking(activeBookings[0]);
+        setAllActiveDateBookings(activeBookings);
         setShowDetail(true);
-        // Also store cancelled for access via BookingDetail
         setCancelledForDate(cancelledBookings);
         return;
       }
@@ -339,6 +341,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
         onClose={() => {
           setShowDetail(false);
           setSelectedBooking(null);
+          setAllActiveDateBookings([]);
         }}
         onEdit={() => {
           setEditBooking(selectedBooking);
@@ -351,6 +354,10 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
         onShowCancelled={() => {
           setShowDetail(false);
           setShowCancelled(true);
+        }}
+        allActiveBookings={allActiveDateBookings}
+        onSelectBooking={(b) => {
+          setSelectedBooking(b);
         }}
       />
 
