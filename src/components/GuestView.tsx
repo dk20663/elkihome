@@ -7,7 +7,7 @@ import CalendarGrid from "./CalendarGrid";
 import HouseFilter from "./HouseFilter";
 import GuestPriceDetail from "./GuestPriceDetail";
 import { supabase } from "@/integrations/supabase/client";
-import type { House, HouseFilter as HouseFilterType, Booking } from "@/lib/types";
+import type { House, HouseFilter as HouseFilterType, Booking, HousePricing } from "@/lib/types";
 
 interface Props {
   onBack: () => void;
@@ -18,17 +18,20 @@ export default function GuestView({ onBack }: Props) {
   const [filter, setFilter] = useState<HouseFilterType>("all");
   const [houses, setHouses] = useState<House[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [pricing, setPricing] = useState<HousePricing[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showPrice, setShowPrice] = useState(false);
 
   useEffect(() => {
     async function load() {
-      const [housesRes, bookingsRes] = await Promise.all([
+      const [housesRes, bookingsRes, pricingRes] = await Promise.all([
         supabase.from("houses").select("*"),
         supabase.from("public_bookings_view").select("*"),
+        supabase.from("house_pricing").select("*"),
       ]);
       if (housesRes.data) setHouses(housesRes.data as House[]);
+      if (pricingRes.data) setPricing(pricingRes.data as HousePricing[]);
       if (bookingsRes.data) {
         setBookings(
           bookingsRes.data.map((b: any) => ({
@@ -128,6 +131,7 @@ export default function GuestView({ onBack }: Props) {
         open={showPrice}
         onClose={() => setShowPrice(false)}
         bookings={bookings}
+        pricing={pricing}
       />
     </div>
   );

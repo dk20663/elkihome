@@ -8,7 +8,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import type { House, HouseFilter, Booking } from "@/lib/types";
+import type { House, HouseFilter, Booking, HousePricing } from "@/lib/types";
 
 interface Props {
   date: Date | null;
@@ -17,6 +17,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   bookings?: Booking[];
+  pricing?: HousePricing[];
 }
 
 function isWeekdayCustom(date: Date): boolean {
@@ -35,13 +36,14 @@ function isHouseBookedOnDate(date: Date, houseId: string, bookings: Booking[]): 
 
 const TELEGRAM_URL = "https://t.me/elki_home24";
 
-export default function GuestPriceDetail({ date, houses, filter, open, onClose, bookings = [] }: Props) {
+export default function GuestPriceDetail({ date, houses, filter, open, onClose, bookings = [], pricing = [] }: Props) {
   if (!date) return null;
 
   const greenHouse = houses.find((h) => h.name === "GREEN");
   const blackHouse = houses.find((h) => h.name === "BLACK");
   const isWeekday = isWeekdayCustom(date);
   const dayType = isWeekday ? "будни" : "выходные";
+  const dateStr = format(date, "yyyy-MM-dd");
 
   const housesToShow =
     filter === "green" ? [greenHouse].filter(Boolean) :
@@ -60,7 +62,8 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
         <div className="space-y-5 pt-4">
           {housesToShow.map((house) => {
             if (!house) return null;
-            const housePrice = isWeekday ? house.base_price_weekday : house.base_price_weekend;
+            const customPrice = pricing.find((p) => p.house_id === house.id && p.date === dateStr);
+            const housePrice = customPrice ? customPrice.price : (isWeekday ? house.base_price_weekday : house.base_price_weekend);
             const plungePrice = house.name === "GREEN" ? 5500 : 5000;
             const isBooked = isHouseBookedOnDate(date, house.id, bookings);
 
@@ -92,9 +95,12 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
                 )}
 
                 <div className="rounded-xl bg-secondary p-3 space-y-1.5 text-sm">
-                  <div className="flex justify-between">
-                    <span>Стоимость дома</span>
-                    <span className="font-semibold">{housePrice.toLocaleString("ru-RU")} ₽</span>
+                  <div>
+                    <div className="flex justify-between">
+                      <span>Стоимость дома</span>
+                      <span className="font-semibold">{housePrice.toLocaleString("ru-RU")} ₽</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">цена указана на 2 гостя</p>
                   </div>
                   <div className="flex justify-between">
                     <span>Баня</span>
@@ -107,10 +113,6 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
                   <div className="flex justify-between">
                     <span>Пихтовая запарка в чан</span>
                     <span className="font-semibold">500 ₽</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Веники в баню</span>
-                    <span className="font-semibold">от 400 ₽</span>
                   </div>
                 </div>
               </div>

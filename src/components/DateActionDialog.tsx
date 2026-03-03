@@ -35,7 +35,7 @@ export default function DateActionDialog({ open, onClose, dateRange, onAddBookin
           <Button
             variant="outline"
             className="h-14 justify-start gap-3 text-sm"
-            onClick={() => { onClose(); onAddBooking(); }}
+            onClick={() => { onAddBooking(); }}
           >
             <CalendarDays className="h-5 w-5" />
             <div className="text-left">
@@ -46,7 +46,7 @@ export default function DateActionDialog({ open, onClose, dateRange, onAddBookin
           <Button
             variant="outline"
             className="h-14 justify-start gap-3 text-sm"
-            onClick={() => { onClose(); onEditPrice(); }}
+            onClick={() => { onEditPrice(); }}
           >
             <DollarSign className="h-5 w-5" />
             <div className="text-left">
