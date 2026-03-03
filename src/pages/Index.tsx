@@ -117,6 +117,9 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
       // Range selection for new booking (only when no cancelled bookings on this date)
       if (!selectedRange.start || selectedRange.end) {
         setSelectedRange({ start: date, end: null });
+      } else if (isSameDay(date, selectedRange.start)) {
+        // Double-click on same date — open action dialog for single date
+        setShowDateAction(true);
       } else {
         if (isBefore(date, selectedRange.start)) {
           setSelectedRange({ start: date, end: selectedRange.start });
@@ -246,9 +249,6 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
           }} title="Выйти">
             <LogOut className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBackToRoles} title="На главную">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          </Button>
         </div>
       </header>
 
@@ -374,9 +374,11 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
         }}
         dateRange={selectedRange}
         onAddBooking={() => {
+          setShowDateAction(false);
           setShowForm(true);
         }}
         onEditPrice={() => {
+          setShowDateAction(false);
           setShowPriceEditor(true);
         }}
       />

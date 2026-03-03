@@ -264,7 +264,6 @@ export default function BookingForm({
               {[
                 { id: "sauna", label: "Баня", checked: sauna, set: setSauna },
                 { id: "plunge", label: "Купель", checked: plungePool, set: setPlungePool },
-                { id: "brooms", label: "Веники в баню", checked: bathBrooms, set: setBathBrooms },
                 { id: "fir", label: "Пихтовая запарка", checked: firInfusion, set: setFirInfusion },
                 { id: "citrus", label: "Цитрусовая запарка", checked: citrusInfusion, set: setCitrusInfusion },
               ].map((s) => (
