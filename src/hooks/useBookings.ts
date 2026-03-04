@@ -1,15 +1,36 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Booking, BookingFormData } from "@/lib/types";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function useBookings() {
   const queryClient = useQueryClient();
+  const [authReady, setAuthReady] = useState(false);
+
+  // Listen for auth state changes to know when session is available
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session) {
+          setAuthReady(true);
+          queryClient.invalidateQueries({ queryKey: ["bookings"] });
+        } else {
+          setAuthReady(false);
+        }
+      }
+    );
+
+    // Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setAuthReady(true);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
 
   const query = useQuery({
-    queryKey: ["bookings"],
+    queryKey: ["bookings", authReady],
     queryFn: async () => {
-      // Ensure we have a valid session before querying
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return [];
       const { data, error } = await supabase
@@ -19,6 +40,7 @@ export function useBookings() {
       if (error) throw error;
       return data as Booking[];
     },
+    enabled: authReady,
     refetchOnMount: true,
     staleTime: 0,
   });
@@ -79,6 +101,34 @@ export function useCancelBooking() {
       const { error } = await supabase
         .from("bookings")
         .update({ cancelled: true })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookings"] }),
+  });
+}
+
+export function useRestoreBooking() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ cancelled: false })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookings"] }),
+  });
+}
+
+export function useDeleteBooking() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("bookings")
+        .delete()
         .eq("id", id);
       if (error) throw error;
     },

@@ -34,6 +34,7 @@ interface Props {
   defaultDates?: { start: Date | null; end: Date | null };
   loading?: boolean;
   currentFilter?: HouseFilter;
+  presetHouseId?: string | null;
 }
 
 export default function BookingForm({
@@ -45,6 +46,7 @@ export default function BookingForm({
   defaultDates,
   loading,
   currentFilter,
+  presetHouseId,
 }: Props) {
   const [houseId, setHouseId] = useState("");
   const [checkIn, setCheckIn] = useState("");
@@ -78,8 +80,10 @@ export default function BookingForm({
       setFirInfusion(initialData.fir_infusion);
       setCitrusInfusion(initialData.citrus_infusion);
     } else {
-      // Default house based on current filter
-      const defaultHouse = currentFilter === "green"
+      // Default house based on presetHouseId or current filter
+      const defaultHouse = presetHouseId
+        ? houses.find(h => h.id === presetHouseId)
+        : currentFilter === "green"
         ? houses.find(h => h.name === "GREEN")
         : currentFilter === "black"
         ? houses.find(h => h.name === "BLACK")
