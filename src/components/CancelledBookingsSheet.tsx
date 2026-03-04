@@ -1,4 +1,4 @@
-import { format, parseISO, differenceInDays } from "date-fns";
+import { format, parseISO, differenceInDays, isSameDay, isAfter, isBefore } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import type { Booking, House } from "@/lib/types";
-import { RotateCcw, Calendar, User, Phone, MessageSquare, Users, Globe, Plus } from "lucide-react";
+import { RotateCcw, Calendar, User, Phone, MessageSquare, Users, Globe, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Props {
   bookings: Booking[];
@@ -17,10 +18,33 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onAddBooking?: () => void;
+  allBookings?: Booking[];
+  onRestore?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
-export default function CancelledBookingsSheet({ bookings, houses, open, onClose, onAddBooking }: Props) {
+export default function CancelledBookingsSheet({ bookings, houses, open, onClose, onAddBooking, allBookings = [], onRestore, onDelete }: Props) {
   if (bookings.length === 0) return null;
+
+  const handleRestore = (booking: Booking) => {
+    // Check if the date range is already occupied by an active booking for the same house
+    const conflicting = allBookings.some((b) => {
+      if (b.cancelled || b.id === booking.id || b.house_id !== booking.house_id) return false;
+      const bIn = parseISO(b.check_in);
+      const bOut = parseISO(b.check_out);
+      const rIn = parseISO(booking.check_in);
+      const rOut = parseISO(booking.check_out);
+      // Overlap check
+      return isBefore(rIn, bOut) && isAfter(rOut, bIn);
+    });
+
+    if (conflicting) {
+      toast.error("Восстановить бронирование не получится, т.к. дата уже занята");
+      return;
+    }
+
+    onRestore?.(booking.id);
+  };
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -32,7 +56,6 @@ export default function CancelledBookingsSheet({ bookings, houses, open, onClose
           </SheetTitle>
         </SheetHeader>
 
-        {/* Add new booking button */}
         {onAddBooking && (
           <div className="py-3">
             <Button className="w-full" onClick={() => { onClose(); onAddBooking(); }}>
@@ -52,7 +75,6 @@ export default function CancelledBookingsSheet({ bookings, houses, open, onClose
             const services = [
               booking.sauna && "Баня",
               booking.plunge_pool && "Купель",
-              booking.bath_brooms && "Веники",
               booking.fir_infusion && "Пихтовая запарка",
               booking.citrus_infusion && "Цитрусовая запарка",
             ].filter(Boolean);
@@ -135,6 +157,31 @@ export default function CancelledBookingsSheet({ bookings, houses, open, onClose
                     {services.join(" · ")}
                   </div>
                 )}
+
+                <div className="flex gap-2 pt-1">
+                  {onRestore && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 border-primary/30 text-primary hover:bg-primary/5"
+                      onClick={() => handleRestore(booking)}
+                    >
+                      <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                      Восстановить
+                    </Button>
+                  )}
+                  {onDelete && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => onDelete(booking.id)}
+                    >
+                      <Trash2 className="mr-1 h-3.5 w-3.5" />
+                      Удалить
+                    </Button>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -143,4 +190,3 @@ export default function CancelledBookingsSheet({ bookings, houses, open, onClose
     </Sheet>
   );
 }
-

@@ -18,7 +18,7 @@ import DatePriceEditor from "@/components/DatePriceEditor";
 import AuthPage from "@/components/AuthPage";
 import { useAuth } from "@/hooks/useAuth";
 import { useHouses } from "@/hooks/useHouses";
-import { useBookings, useCreateBooking, useUpdateBooking, useCancelBooking } from "@/hooks/useBookings";
+import { useBookings, useCreateBooking, useUpdateBooking, useCancelBooking, useRestoreBooking, useDeleteBooking } from "@/hooks/useBookings";
 import type { HouseFilter as HouseFilterType, Booking, BookingFormData } from "@/lib/types";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,6 +58,8 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
   const createBooking = useCreateBooking();
   const updateBooking = useUpdateBooking();
   const cancelBooking = useCancelBooking();
+  const restoreBooking = useRestoreBooking();
+  const deleteBooking = useDeleteBooking();
 
   const [month, setMonth] = useState(new Date());
   const [filter, setFilter] = useState<HouseFilterType>("all");
@@ -77,6 +79,9 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
   const [cancelledClickedDate, setCancelledClickedDate] = useState<Date | null>(null);
   const [showDateAction, setShowDateAction] = useState(false);
   const [showPriceEditor, setShowPriceEditor] = useState(false);
+  const [priceEditorHouseFilter, setPriceEditorHouseFilter] = useState<string[] | null>(null);
+  const [presetHouseId, setPresetHouseId] = useState<string | null>(null);
+
   const handleDateClick = useCallback(
     (date: Date) => {
       const dayBookings = bookings.filter((b) => {
@@ -96,31 +101,30 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
       const activeBookings = filtered.filter((b) => !b.cancelled);
       const cancelledBookings = filtered.filter((b) => b.cancelled);
 
-      // If active bookings exist, show them
+      // Also get ALL active bookings regardless of filter for the "both houses" actions
+      const allActive = dayBookings.filter((b) => !b.cancelled);
+
       if (activeBookings.length > 0) {
-        // In "all" mode with multiple bookings, show all via a list
         setSelectedBooking(activeBookings[0]);
-        setAllActiveDateBookings(activeBookings);
+        setAllActiveDateBookings(allActive);
         setShowDetail(true);
         setCancelledForDate(cancelledBookings);
+        setSelectedRange({ start: date, end: null });
         return;
       }
 
-      // If only cancelled bookings, store them and show cancelled sheet (not form yet)
       if (cancelledBookings.length > 0) {
         setCancelledForDate(cancelledBookings);
         setCancelledClickedDate(date);
         setShowCancelled(true);
-        // Reset range so next click starts fresh
         setSelectedRange({ start: null, end: null });
         return;
       }
 
-      // Range selection for new booking (only when no cancelled bookings on this date)
+      // Range selection for new booking
       if (!selectedRange.start || selectedRange.end) {
         setSelectedRange({ start: date, end: null });
       } else if (isSameDay(date, selectedRange.start)) {
-        // Double-click on same date — open action dialog for single date
         setShowDateAction(true);
       } else {
         if (isBefore(date, selectedRange.start)) {
@@ -135,11 +139,25 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
   );
 
   const handleCreateBooking = async (data: BookingFormData) => {
+    // Check for duplicate booking
+    const conflict = bookings.some((b) => {
+      if (b.cancelled || b.house_id !== data.house_id) return false;
+      const bIn = parseISO(b.check_in);
+      const bOut = parseISO(b.check_out);
+      const dIn = parseISO(data.check_in);
+      const dOut = parseISO(data.check_out);
+      return isBefore(dIn, bOut) && isAfter(dOut, bIn);
+    });
+    if (conflict) {
+      toast.error("Этот дом уже занят на выбранные даты");
+      return;
+    }
     try {
       await createBooking.mutateAsync(data);
       toast.success("Бронь создана");
       setShowForm(false);
       setSelectedRange({ start: null, end: null });
+      setPresetHouseId(null);
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -170,6 +188,30 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
     }
   };
 
+  const handleRestoreBooking = async (id: string) => {
+    try {
+      await restoreBooking.mutateAsync(id);
+      toast.success("Бронирование восстановлено");
+      // Remove from cancelled list
+      setCancelledForDate((prev) => prev.filter((b) => b.id !== id));
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDeleteBooking = async (id: string) => {
+    try {
+      await deleteBooking.mutateAsync(id);
+      toast.success("Бронирование удалено");
+      setCancelledForDate((prev) => prev.filter((b) => b.id !== id));
+      if (cancelledForDate.length <= 1) {
+        setShowCancelled(false);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const selectedHouse = useMemo(() => {
     if (!selectedBooking) return null;
     return houses.find((h) => h.id === selectedBooking.house_id) || null;
@@ -194,13 +236,17 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
   }
 
   if (showPriceEditor && selectedRange.start) {
+    const editorHouses = priceEditorHouseFilter
+      ? houses.filter((h) => priceEditorHouseFilter.includes(h.id))
+      : houses;
     return (
       <DatePriceEditor
-        houses={houses}
+        houses={editorHouses}
         dateRange={{ start: selectedRange.start, end: selectedRange.end }}
         onClose={() => {
           setShowPriceEditor(false);
           setSelectedRange({ start: null, end: null });
+          setPriceEditorHouseFilter(null);
         }}
       />
     );
@@ -311,6 +357,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
           className="h-14 w-14 rounded-full shadow-lg"
           onClick={() => {
             setEditBooking(null);
+            setPresetHouseId(null);
             setSelectedRange({ start: null, end: null });
             setShowForm(true);
           }}
@@ -324,6 +371,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
         onClose={() => {
           setShowForm(false);
           setEditBooking(null);
+          setPresetHouseId(null);
           setSelectedRange({ start: null, end: null });
         }}
         houses={houses}
@@ -332,6 +380,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
         defaultDates={selectedRange}
         loading={createBooking.isPending || updateBooking.isPending}
         currentFilter={filter}
+        presetHouseId={presetHouseId}
       />
 
       <BookingDetail
@@ -359,6 +408,17 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
         onSelectBooking={(b) => {
           setSelectedBooking(b);
         }}
+        onAddBookingForHouse={(houseId) => {
+          setEditBooking(null);
+          setPresetHouseId(houseId);
+          setShowDetail(false);
+          setShowForm(true);
+        }}
+        onEditPriceForHouse={(houseId) => {
+          setPriceEditorHouseFilter([houseId]);
+          setShowDetail(false);
+          setShowPriceEditor(true);
+        }}
       />
 
       <CancelledBookingsSheet
@@ -371,6 +431,9 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
           setSelectedRange({ start: cancelledClickedDate, end: null });
           setShowForm(true);
         }}
+        allBookings={bookings}
+        onRestore={handleRestoreBooking}
+        onDelete={handleDeleteBooking}
       />
 
       <DateActionDialog
@@ -382,10 +445,12 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
         dateRange={selectedRange}
         onAddBooking={() => {
           setShowDateAction(false);
+          setPresetHouseId(null);
           setShowForm(true);
         }}
         onEditPrice={() => {
           setShowDateAction(false);
+          setPriceEditorHouseFilter(null);
           setShowPriceEditor(true);
         }}
       />

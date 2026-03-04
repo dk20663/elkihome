@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import type { Booking, House } from "@/lib/types";
-import { Edit, Ban, Phone, User, Calendar, MessageSquare, Users, Globe, RotateCcw } from "lucide-react";
+import { Edit, Ban, Phone, User, Calendar, MessageSquare, Users, Globe, RotateCcw, Plus, DollarSign } from "lucide-react";
 
 interface Props {
   booking: Booking | null;
@@ -23,6 +23,8 @@ interface Props {
   onShowCancelled?: () => void;
   allActiveBookings?: Booking[];
   onSelectBooking?: (b: Booking) => void;
+  onAddBookingForHouse?: (houseId: string) => void;
+  onEditPriceForHouse?: (houseId: string) => void;
 }
 
 function BookingCard({ booking, house, onEdit, onCancel }: { booking: Booking; house: House; onEdit: () => void; onCancel: () => void }) {
@@ -120,11 +122,15 @@ export default function BookingDetail({
   booking, house, open, onClose, onEdit, onCancel,
   cancelledBookings = [], houses = [], onShowCancelled,
   allActiveBookings = [], onSelectBooking,
+  onAddBookingForHouse, onEditPriceForHouse,
 }: Props) {
   if (!booking || !house) return null;
 
-  // If multiple active bookings for this date, show all
   const multipleBookings = allActiveBookings.length > 1;
+
+  // Find which houses are NOT booked on this date
+  const bookedHouseIds = new Set(allActiveBookings.map((b) => b.house_id));
+  const freeHouses = houses.filter((h) => !bookedHouseIds.has(h.id));
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -150,6 +156,56 @@ export default function BookingDetail({
             })
           ) : (
             <BookingCard booking={booking} house={house} onEdit={onEdit} onCancel={onCancel} />
+          )}
+
+          {/* Actions for free houses */}
+          {freeHouses.length > 0 && (
+            <div className="space-y-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground font-medium">Свободные дома:</p>
+              {freeHouses.map((fh) => (
+                <div key={fh.id} className="flex items-center gap-2">
+                  <span className={`h-2.5 w-2.5 rounded-full ${fh.name === "GREEN" ? "bg-house-green" : "bg-house-black"}`} />
+                  <span className="text-sm font-medium flex-1">Дом {fh.name}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { onClose(); onAddBookingForHouse?.(fh.id); }}
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" /> Бронь
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { onClose(); onEditPriceForHouse?.(fh.id); }}
+                  >
+                    <DollarSign className="mr-1 h-3.5 w-3.5" /> Цена
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Actions for booked houses - edit price */}
+          {bookedHouseIds.size > 0 && onEditPriceForHouse && (
+            <div className="space-y-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground font-medium">Изменить цену:</p>
+              {Array.from(bookedHouseIds).map((hId) => {
+                const bh = houses.find((h) => h.id === hId);
+                if (!bh) return null;
+                return (
+                  <Button
+                    key={hId}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={() => { onClose(); onEditPriceForHouse(hId); }}
+                  >
+                    <span className={`h-2.5 w-2.5 rounded-full mr-2 ${bh.name === "GREEN" ? "bg-house-green" : "bg-house-black"}`} />
+                    <DollarSign className="mr-1 h-3.5 w-3.5" /> Цена дома {bh.name}
+                  </Button>
+                );
+              })}
+            </div>
           )}
 
           {cancelledBookings.length > 0 && onShowCancelled && (
