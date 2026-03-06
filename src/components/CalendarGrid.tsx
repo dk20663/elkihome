@@ -87,7 +87,7 @@ export default function CalendarGrid({
 
   const today = startOfDay(new Date());
 
-  // Precompute booking status for each day for strip connectivity
+  // Precompute booking status for each day
   const dayStatusMap = useMemo(() => {
     const map = new Map<string, { greenBooked: boolean; blackBooked: boolean; cellBg: string }>();
     for (const day of days) {
@@ -105,7 +105,7 @@ export default function CalendarGrid({
 
   return (
     <div>
-      <div className="grid grid-cols-7 gap-0.5 mb-1">
+      <div className="grid grid-cols-7 mb-1">
         {WEEKDAYS.map((d, i) => (
           <div
             key={d}
@@ -118,7 +118,7 @@ export default function CalendarGrid({
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-0.5">
+      <div className="grid grid-cols-7">
         {days.map((day, idx) => {
           const inMonth = isSameMonth(day, month);
           const isCurrentDay = isToday(day);
@@ -136,7 +136,7 @@ export default function CalendarGrid({
               <button
                 key={day.toISOString()}
                 disabled
-                className="relative flex flex-col items-center justify-center rounded-lg aspect-square text-xs opacity-20 pointer-events-none"
+                className="relative flex flex-col items-center justify-center aspect-square text-xs opacity-20 pointer-events-none"
               >
                 <span className="font-semibold leading-none text-muted-foreground">
                   {format(day, "d")}
@@ -145,7 +145,6 @@ export default function CalendarGrid({
             );
           }
 
-          // Check for cancelled bookings — only show in admin view
           const hasCancelled = !isPublicView && dayBookings.some((b) => b.cancelled);
 
           const isInRange =
@@ -159,26 +158,27 @@ export default function CalendarGrid({
 
           const hasActiveBooking = dayBookings.some((b) => !b.cancelled);
 
-          // Strip connectivity for admin view (multi-day bookings)
-          let stripClass = "rounded-lg";
+          // Strip connectivity: seamless multi-day booking strips
+          let borderRadiusStyle: React.CSSProperties = {};
           if (!isPublicView && cellBg && inMonth) {
             const colIndex = idx % 7;
-            const prevKey = colIndex > 0 ? format(subDays(day, 1), "yyyy-MM-dd") : null;
-            const nextKey = colIndex < 6 ? format(addDays(day, 1), "yyyy-MM-dd") : null;
-            const prevStatus = prevKey ? dayStatusMap.get(prevKey) : null;
-            const nextStatus = nextKey ? dayStatusMap.get(nextKey) : null;
-            const prevSame = prevStatus && prevStatus.cellBg === cellBg && isSameMonth(subDays(day, 1), month);
-            const nextSame = nextStatus && nextStatus.cellBg === cellBg && isSameMonth(addDays(day, 1), month);
+            const prevDay = subDays(day, 1);
+            const nextDay = addDays(day, 1);
+            const prevKey = format(prevDay, "yyyy-MM-dd");
+            const nextKey = format(nextDay, "yyyy-MM-dd");
+            const prevStatus = dayStatusMap.get(prevKey);
+            const nextStatus = dayStatusMap.get(nextKey);
+            const prevSame = colIndex > 0 && prevStatus && prevStatus.cellBg === cellBg && isSameMonth(prevDay, month);
+            const nextSame = colIndex < 6 && nextStatus && nextStatus.cellBg === cellBg && isSameMonth(nextDay, month);
 
             if (prevSame && nextSame) {
-              stripClass = "rounded-none";
+              borderRadiusStyle = { borderRadius: 0 };
             } else if (prevSame) {
-              stripClass = "rounded-l-none rounded-r-lg";
+              borderRadiusStyle = { borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderTopRightRadius: 'var(--radius)', borderBottomRightRadius: 'var(--radius)' };
             } else if (nextSame) {
-              stripClass = "rounded-r-none rounded-l-lg";
-            } else {
-              stripClass = "rounded-lg";
+              borderRadiusStyle = { borderTopRightRadius: 0, borderBottomRightRadius: 0, borderTopLeftRadius: 'var(--radius)', borderBottomLeftRadius: 'var(--radius)' };
             }
+            // else keep default rounded
           }
 
           return (
@@ -186,25 +186,26 @@ export default function CalendarGrid({
               key={day.toISOString()}
               onClick={() => inMonth && onDateClick(day)}
               disabled={!inMonth}
+              style={borderRadiusStyle}
               className={cn(
-                "relative flex flex-col items-center justify-center aspect-square text-xs transition-all",
-                stripClass,
+                "relative flex flex-col items-center justify-center aspect-square text-xs transition-all rounded-[var(--radius)]",
                 !inMonth && "opacity-20 pointer-events-none",
                 inMonth && !hasActiveBooking && "hover:bg-secondary",
                 inMonth && isWeekend && !cellBg && "bg-muted/40",
-                // Today: bold blue ring for admin, subtle for guest
-                isCurrentDay && !isPublicView && "ring-2 ring-[hsl(217,91%,60%)]",
-                isCurrentDay && isPublicView && "ring-1 ring-primary/30",
                 isInRange && "bg-primary/10",
                 isRangeStart && "ring-2 ring-primary",
                 isRangeEnd && "ring-2 ring-primary",
-                cellBg
+                cellBg,
+                // Today: hatched overlay
+                isCurrentDay && !isPublicView && cellBg && "calendar-today-hatched",
+                isCurrentDay && !isPublicView && !cellBg && "calendar-today-hatched-empty",
+                isCurrentDay && isPublicView && "ring-1 ring-primary/30"
               )}
             >
               <span
                 className={cn(
                   "font-semibold leading-none",
-                  isCurrentDay && "text-primary",
+                  isCurrentDay && !cellBg && "text-primary",
                   (greenBooked && blackBooked) && "text-primary-foreground",
                   (filter === "green" && greenBooked) && "text-primary-foreground",
                   (filter === "black" && blackBooked) && "text-primary-foreground",
