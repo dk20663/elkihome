@@ -1,12 +1,24 @@
-import { Home, Users } from "lucide-react";
+import { Home, Users, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 interface Props {
   onSelectRole: (role: "guest" | "admin") => void;
 }
 
 export default function RoleSelection({ onSelectRole }: Props) {
+  const tg = (window as any).Telegram?.WebApp;
+  const canAddToHome = tg && typeof tg.addToHomeScreen === "function";
+
+  const handleAddToHome = () => {
+    try {
+      tg.addToHomeScreen();
+    } catch {
+      toast.error("Не удалось добавить ярлык");
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm shadow-xl border-border/50">
@@ -33,6 +45,16 @@ export default function RoleSelection({ onSelectRole }: Props) {
             <Home className="h-5 w-5" />
             <span>Я администратор</span>
           </Button>
+          {canAddToHome && (
+            <Button
+              variant="ghost"
+              className="w-full h-12 text-sm flex items-center gap-2 text-muted-foreground"
+              onClick={handleAddToHome}
+            >
+              <Smartphone className="h-4 w-4" />
+              <span>Добавить на главный экран</span>
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>
