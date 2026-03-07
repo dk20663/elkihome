@@ -195,10 +195,10 @@ export default function BookingDetail({
           )}
 
           {/* Actions for booked houses - edit price */}
-          {bookedHouseIds.size > 0 && onEditPriceForHouse && (
+          {visibleBookedHouseIds.size > 0 && onEditPriceForHouse && (
             <div className="space-y-2 pt-2 border-t border-border/50">
               <p className="text-xs text-muted-foreground font-medium">Изменить цену:</p>
-              {Array.from(bookedHouseIds).map((hId) => {
+              {Array.from(visibleBookedHouseIds).map((hId) => {
                 const bh = houses.find((h) => h.id === hId);
                 if (!bh) return null;
                 return (

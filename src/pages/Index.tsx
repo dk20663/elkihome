@@ -419,6 +419,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
           setShowDetail(false);
           setShowPriceEditor(true);
         }}
+        currentFilter={filter}
       />
 
       <CancelledBookingsSheet
