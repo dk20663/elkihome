@@ -173,18 +173,33 @@ export default function CalendarGrid({
 
           const hasActiveBooking = dayBookings.some((b) => !b.cancelled);
 
-          // Strip connectivity: seamless multi-day booking strips
+          // Strip connectivity: booking-aware (share same booking ID with neighbor)
           let borderRadiusStyle: React.CSSProperties = {};
           if (!isPublicView && cellBg && inMonth) {
             const colIndex = idx % 7;
-            const prevDay = subDays(day, 1);
-            const nextDay = addDays(day, 1);
-            const prevKey = format(prevDay, "yyyy-MM-dd");
-            const nextKey = format(nextDay, "yyyy-MM-dd");
+            const prevKey = format(subDays(day, 1), "yyyy-MM-dd");
+            const nextKey = format(addDays(day, 1), "yyyy-MM-dd");
             const prevStatus = dayStatusMap.get(prevKey);
             const nextStatus = dayStatusMap.get(nextKey);
-            const prevSame = colIndex > 0 && prevStatus && prevStatus.cellBg === cellBg && isSameMonth(prevDay, month);
-            const nextSame = colIndex < 6 && nextStatus && nextStatus.cellBg === cellBg && isSameMonth(nextDay, month);
+
+            // Check if neighbor shares a booking ID (not just same color)
+            const sharesBooking = (a: typeof status, b: typeof prevStatus) => {
+              if (!b) return false;
+              if (filter === "green" || filter === "all") {
+                for (const id of a.greenBookingIds) {
+                  if (b.greenBookingIds.has(id)) return true;
+                }
+              }
+              if (filter === "black" || filter === "all") {
+                for (const id of a.blackBookingIds) {
+                  if (b.blackBookingIds.has(id)) return true;
+                }
+              }
+              return false;
+            };
+
+            const prevSame = colIndex > 0 && prevStatus && sharesBooking(status, prevStatus) && isSameMonth(subDays(day, 1), month);
+            const nextSame = colIndex < 6 && nextStatus && sharesBooking(status, nextStatus) && isSameMonth(addDays(day, 1), month);
 
             if (prevSame && nextSame) {
               borderRadiusStyle = { borderRadius: 0 };
@@ -193,7 +208,6 @@ export default function CalendarGrid({
             } else if (nextSame) {
               borderRadiusStyle = { borderTopRightRadius: 0, borderBottomRightRadius: 0, borderTopLeftRadius: 'var(--radius)', borderBottomLeftRadius: 'var(--radius)' };
             }
-            // else keep default rounded
           }
 
           return (
@@ -211,10 +225,8 @@ export default function CalendarGrid({
                 isRangeStart && "ring-2 ring-primary",
                 isRangeEnd && "ring-2 ring-primary",
                 cellBg,
-                // Today: hatched overlay
-                isCurrentDay && !isPublicView && cellBg && "calendar-today-hatched",
-                isCurrentDay && !isPublicView && !cellBg && "calendar-today-hatched-empty",
-                isCurrentDay && isPublicView && "ring-1 ring-primary/30"
+                // Today: inset outline
+                isCurrentDay && "calendar-today-outline"
               )}
             >
               <span
