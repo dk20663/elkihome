@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Booking, House } from "@/lib/types";
 import { Edit, Ban, Phone, User, Calendar, MessageSquare, Users, Globe, RotateCcw, Plus, DollarSign } from "lucide-react";
+import type { HouseFilter } from "@/lib/types";
 
 interface Props {
   booking: Booking | null;
@@ -25,6 +26,7 @@ interface Props {
   onSelectBooking?: (b: Booking) => void;
   onAddBookingForHouse?: (houseId: string) => void;
   onEditPriceForHouse?: (houseId: string) => void;
+  currentFilter?: HouseFilter;
 }
 
 function BookingCard({ booking, house, onEdit, onCancel }: { booking: Booking; house: House; onEdit: () => void; onCancel: () => void }) {
@@ -123,14 +125,21 @@ export default function BookingDetail({
   cancelledBookings = [], houses = [], onShowCancelled,
   allActiveBookings = [], onSelectBooking,
   onAddBookingForHouse, onEditPriceForHouse,
+  currentFilter,
 }: Props) {
   if (!booking || !house) return null;
 
   const multipleBookings = allActiveBookings.length > 1;
 
-  // Find which houses are NOT booked on this date
+  // Find which houses are NOT booked on this date, respecting filter
   const bookedHouseIds = new Set(allActiveBookings.map((b) => b.house_id));
-  const freeHouses = houses.filter((h) => !bookedHouseIds.has(h.id));
+  const isFiltered = currentFilter === "green" || currentFilter === "black";
+  const freeHouses = isFiltered ? [] : houses.filter((h) => !bookedHouseIds.has(h.id));
+
+  // For price editing, only show houses matching the current filter
+  const visibleBookedHouseIds = isFiltered
+    ? new Set(allActiveBookings.filter((b) => b.house_id === house.id).map((b) => b.house_id))
+    : bookedHouseIds;
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -186,10 +195,10 @@ export default function BookingDetail({
           )}
 
           {/* Actions for booked houses - edit price */}
-          {bookedHouseIds.size > 0 && onEditPriceForHouse && (
+          {visibleBookedHouseIds.size > 0 && onEditPriceForHouse && (
             <div className="space-y-2 pt-2 border-t border-border/50">
               <p className="text-xs text-muted-foreground font-medium">Изменить цену:</p>
-              {Array.from(bookedHouseIds).map((hId) => {
+              {Array.from(visibleBookedHouseIds).map((hId) => {
                 const bh = houses.find((h) => h.id === hId);
                 if (!bh) return null;
                 return (
