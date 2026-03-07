@@ -125,14 +125,21 @@ export default function BookingDetail({
   cancelledBookings = [], houses = [], onShowCancelled,
   allActiveBookings = [], onSelectBooking,
   onAddBookingForHouse, onEditPriceForHouse,
+  currentFilter,
 }: Props) {
   if (!booking || !house) return null;
 
   const multipleBookings = allActiveBookings.length > 1;
 
-  // Find which houses are NOT booked on this date
+  // Find which houses are NOT booked on this date, respecting filter
   const bookedHouseIds = new Set(allActiveBookings.map((b) => b.house_id));
-  const freeHouses = houses.filter((h) => !bookedHouseIds.has(h.id));
+  const isFiltered = currentFilter === "green" || currentFilter === "black";
+  const freeHouses = isFiltered ? [] : houses.filter((h) => !bookedHouseIds.has(h.id));
+
+  // For price editing, only show houses matching the current filter
+  const visibleBookedHouseIds = isFiltered
+    ? new Set(allActiveBookings.filter((b) => b.house_id === house.id).map((b) => b.house_id))
+    : bookedHouseIds;
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
