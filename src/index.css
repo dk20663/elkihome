@@ -151,27 +151,8 @@
     background: hsl(var(--house-black));
   }
 
-  /* Today hatched overlay on booked cells */
-  .calendar-today-hatched {
-    background-image: repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 2px,
-      hsla(0, 0%, 50%, 0.3) 2px,
-      hsla(0, 0%, 50%, 0.3) 4px
-    );
-    background-blend-mode: normal;
-  }
-
-  /* Today hatched on empty cells */
-  .calendar-today-hatched-empty {
-    background-image: repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 2px,
-      hsl(var(--muted-foreground) / 0.15) 2px,
-      hsl(var(--muted-foreground) / 0.15) 4px
-    );
-    background-color: hsl(var(--muted) / 0.6);
+  /* Today inset outline */
+  .calendar-today-outline {
+    box-shadow: inset 0 0 0 2px hsl(217 91% 60%);
   }
 }

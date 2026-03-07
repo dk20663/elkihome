@@ -87,18 +87,33 @@ export default function CalendarGrid({
 
   const today = startOfDay(new Date());
 
-  // Precompute booking status for each day
+  // Precompute booking status and active booking IDs for each day
   const dayStatusMap = useMemo(() => {
-    const map = new Map<string, { greenBooked: boolean; blackBooked: boolean; cellBg: string }>();
+    const map = new Map<string, {
+      greenBooked: boolean;
+      blackBooked: boolean;
+      cellBg: string;
+      greenBookingIds: Set<string>;
+      blackBookingIds: Set<string>;
+    }>();
     for (const day of days) {
       const allDayBookings = getBookingsForDate(day, bookings);
-      const gb = allDayBookings.some(
-        (b) => greenHouse && b.house_id === greenHouse.id && !b.cancelled
-      );
-      const bb = allDayBookings.some(
-        (b) => blackHouse && b.house_id === blackHouse.id && !b.cancelled
-      );
-      map.set(format(day, "yyyy-MM-dd"), { greenBooked: gb, blackBooked: bb, cellBg: getCellBg(gb, bb, filter) });
+      const greenIds = new Set<string>();
+      const blackIds = new Set<string>();
+      for (const b of allDayBookings) {
+        if (b.cancelled) continue;
+        if (greenHouse && b.house_id === greenHouse.id) greenIds.add(b.id);
+        if (blackHouse && b.house_id === blackHouse.id) blackIds.add(b.id);
+      }
+      const gb = greenIds.size > 0;
+      const bb = blackIds.size > 0;
+      map.set(format(day, "yyyy-MM-dd"), {
+        greenBooked: gb,
+        blackBooked: bb,
+        cellBg: getCellBg(gb, bb, filter),
+        greenBookingIds: greenIds,
+        blackBookingIds: blackIds,
+      });
     }
     return map;
   }, [days, bookings, greenHouse, blackHouse, filter]);
