@@ -101,8 +101,8 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
       const activeBookings = filtered.filter((b) => !b.cancelled);
       const cancelledBookings = filtered.filter((b) => b.cancelled);
 
-      // Also get ALL active bookings regardless of filter for the "both houses" actions
-      const allActive = dayBookings.filter((b) => !b.cancelled);
+      // Get active bookings respecting the current filter
+      const allActive = filtered.filter((b) => !b.cancelled);
 
       if (activeBookings.length > 0) {
         setSelectedBooking(activeBookings[0]);
