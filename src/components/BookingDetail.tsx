@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Booking, House } from "@/lib/types";
 import { Edit, Ban, Phone, User, Calendar, MessageSquare, Users, Globe, RotateCcw, Plus, DollarSign } from "lucide-react";
+import type { HouseFilter } from "@/lib/types";
 
 interface Props {
   booking: Booking | null;
@@ -25,6 +26,7 @@ interface Props {
   onSelectBooking?: (b: Booking) => void;
   onAddBookingForHouse?: (houseId: string) => void;
   onEditPriceForHouse?: (houseId: string) => void;
+  currentFilter?: HouseFilter;
 }
 
 function BookingCard({ booking, house, onEdit, onCancel }: { booking: Booking; house: House; onEdit: () => void; onCancel: () => void }) {
