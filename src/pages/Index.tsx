@@ -180,7 +180,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
     const target = bookingToCancel || selectedBooking;
     if (!target) return;
     try {
-      await cancelBooking.mutateAsync(selectedBooking.id);
+      await cancelBooking.mutateAsync(target.id);
       toast.success("Заезд отменён");
       setShowDetail(false);
       setSelectedBooking(null);
