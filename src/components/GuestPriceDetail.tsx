@@ -155,18 +155,8 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
                   <div>
                     <div className="flex justify-between items-center">
                       <span>Банный чан</span>
-                      {hasTodayDiscount ? (
-                        <span className="flex items-center gap-2">
-                          <span className="line-through text-muted-foreground">{plungePrice.toLocaleString("ru-RU")} ₽</span>
-                          <span className="font-semibold text-emerald-600">{PLUNGE_DISCOUNTED.toLocaleString("ru-RU")} ₽</span>
-                        </span>
-                      ) : (
-                        <span className="font-semibold">{plungePrice.toLocaleString("ru-RU")} ₽</span>
-                      )}
+                      <span className="font-semibold">{plungePrice.toLocaleString("ru-RU")} ₽</span>
                     </div>
-                    {hasTodayDiscount && (
-                      <p className="text-[10px] text-emerald-600">Цена снижена, если берете вместе с баней</p>
-                    )}
                   </div>
 
                   <div className="flex justify-between">
