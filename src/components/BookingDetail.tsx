@@ -29,7 +29,7 @@ interface Props {
   currentFilter?: HouseFilter;
 }
 
-function BookingCard({ booking, house, onEdit, onCancel }: { booking: Booking; house: House; onEdit: () => void; onCancel: () => void }) {
+function BookingCard({ booking, house, onEdit, onCancel }: { booking: Booking; house: House; onEdit: (b?: Booking) => void; onCancel: (b?: Booking) => void }) {
   const nights = differenceInDays(parseISO(booking.check_out), parseISO(booking.check_in));
   const services = [
     booking.sauna && "Баня",
