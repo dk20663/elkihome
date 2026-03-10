@@ -393,9 +393,12 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
           setAllActiveDateBookings([]);
         }}
         onEdit={() => {
-          setEditBooking(selectedBooking);
+          // Use the latest selectedBooking via callback to avoid stale state
           setShowDetail(false);
-          setShowForm(true);
+          setTimeout(() => {
+            setEditBooking(selectedBooking);
+            setShowForm(true);
+          }, 0);
         }}
         onCancel={handleCancelBooking}
         cancelledBookings={cancelledForDate}
