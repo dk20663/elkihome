@@ -176,10 +176,11 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
     }
   };
 
-  const handleCancelBooking = async () => {
-    if (!selectedBooking) return;
+  const handleCancelBooking = async (bookingToCancel?: Booking | null) => {
+    const target = bookingToCancel || selectedBooking;
+    if (!target) return;
     try {
-      await cancelBooking.mutateAsync(selectedBooking.id);
+      await cancelBooking.mutateAsync(target.id);
       toast.success("Заезд отменён");
       setShowDetail(false);
       setSelectedBooking(null);
@@ -392,12 +393,16 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
           setSelectedBooking(null);
           setAllActiveDateBookings([]);
         }}
-        onEdit={() => {
-          setEditBooking(selectedBooking);
+        onEdit={(b?: Booking) => {
+          const target = b || selectedBooking;
+          setEditBooking(target);
           setShowDetail(false);
           setShowForm(true);
         }}
-        onCancel={handleCancelBooking}
+        onCancel={(b?: Booking) => {
+          const target = b || selectedBooking;
+          if (target) handleCancelBooking(target);
+        }}
         cancelledBookings={cancelledForDate}
         houses={houses}
         onShowCancelled={() => {

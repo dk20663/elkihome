@@ -17,8 +17,8 @@ interface Props {
   house: House | null;
   open: boolean;
   onClose: () => void;
-  onEdit: () => void;
-  onCancel: () => void;
+  onEdit: (b?: Booking) => void;
+  onCancel: (b?: Booking) => void;
   cancelledBookings?: Booking[];
   houses?: House[];
   onShowCancelled?: () => void;
@@ -29,7 +29,7 @@ interface Props {
   currentFilter?: HouseFilter;
 }
 
-function BookingCard({ booking, house, onEdit, onCancel }: { booking: Booking; house: House; onEdit: () => void; onCancel: () => void }) {
+function BookingCard({ booking, house, onEdit, onCancel }: { booking: Booking; house: House; onEdit: (b?: Booking) => void; onCancel: (b?: Booking) => void }) {
   const nights = differenceInDays(parseISO(booking.check_out), parseISO(booking.check_in));
   const services = [
     booking.sauna && "Баня",
@@ -107,11 +107,11 @@ function BookingCard({ booking, house, onEdit, onCancel }: { booking: Booking; h
       )}
 
       <div className="flex gap-2">
-        <Button variant="outline" className="flex-1" onClick={onEdit}>
+        <Button variant="outline" className="flex-1" onClick={() => onEdit(booking)}>
           <Edit className="mr-1 h-4 w-4" /> Редактировать
         </Button>
         {!booking.cancelled && (
-          <Button variant="destructive" className="flex-1" onClick={onCancel}>
+          <Button variant="destructive" className="flex-1" onClick={() => onCancel(booking)}>
             <Ban className="mr-1 h-4 w-4" /> Отмена заезда
           </Button>
         )}
@@ -157,8 +157,8 @@ export default function BookingDetail({
                   <BookingCard
                     booking={b}
                     house={bHouse}
-                    onEdit={() => { onSelectBooking?.(b); onEdit(); }}
-                    onCancel={() => { onSelectBooking?.(b); onCancel(); }}
+                    onEdit={() => onEdit(b)}
+                    onCancel={() => onCancel(b)}
                   />
                 </div>
               );
