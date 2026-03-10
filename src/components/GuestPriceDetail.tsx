@@ -51,7 +51,6 @@ const TELEGRAM_URL = "https://t.me/elki_home24";
 
 const HOUSE_DISCOUNT = 2000;
 const SAUNA_DISCOUNTED = 3000;
-const PLUNGE_DISCOUNTED = 3000;
 
 export default function GuestPriceDetail({ date, houses, filter, open, onClose, bookings = [], pricing = [] }: Props) {
   if (!date) return null;
