@@ -107,11 +107,11 @@ function BookingCard({ booking, house, onEdit, onCancel }: { booking: Booking; h
       )}
 
       <div className="flex gap-2">
-        <Button variant="outline" className="flex-1" onClick={onEdit}>
+        <Button variant="outline" className="flex-1" onClick={() => onEdit(booking)}>
           <Edit className="mr-1 h-4 w-4" /> Редактировать
         </Button>
         {!booking.cancelled && (
-          <Button variant="destructive" className="flex-1" onClick={onCancel}>
+          <Button variant="destructive" className="flex-1" onClick={() => onCancel(booking)}>
             <Ban className="mr-1 h-4 w-4" /> Отмена заезда
           </Button>
         )}
