@@ -34,7 +34,24 @@ function isHouseBookedOnDate(date: Date, houseId: string, bookings: Booking[]): 
   });
 }
 
+/** Get today's date in MSK+4 (UTC+7) timezone */
+function getTodayMSKPlus4(): Date {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const mskPlus4 = new Date(utc + 7 * 3600000);
+  return new Date(mskPlus4.getFullYear(), mskPlus4.getMonth(), mskPlus4.getDate());
+}
+
+function isTodayMSKPlus4(date: Date): boolean {
+  const today = getTodayMSKPlus4();
+  return isSameDay(date, today);
+}
+
 const TELEGRAM_URL = "https://t.me/elki_home24";
+
+const HOUSE_DISCOUNT = 2000;
+const SAUNA_DISCOUNTED = 3000;
+const PLUNGE_DISCOUNTED = 3000;
 
 export default function GuestPriceDetail({ date, houses, filter, open, onClose, bookings = [], pricing = [] }: Props) {
   if (!date) return null;
@@ -44,6 +61,7 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
   const isWeekday = isWeekdayCustom(date);
   const dayType = isWeekday ? "будни" : "выходные";
   const dateStr = format(date, "yyyy-MM-dd");
+  const isToday = isTodayMSKPlus4(date);
 
   const housesToShow =
     filter === "green" ? [greenHouse].filter(Boolean) :
@@ -66,6 +84,10 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
             const housePrice = customPrice ? customPrice.price : (isWeekday ? house.base_price_weekday : house.base_price_weekend);
             const plungePrice = house.name === "GREEN" ? 5500 : 5000;
             const isBooked = isHouseBookedOnDate(date, house.id, bookings);
+
+            // Today discount: only if today AND house is free
+            const hasTodayDiscount = isToday && !isBooked;
+            const discountedHousePrice = Math.max(0, housePrice - HOUSE_DISCOUNT);
 
             return (
               <div key={house.id} className="space-y-2">
@@ -95,21 +117,59 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
                 )}
 
                 <div className="rounded-xl bg-secondary p-3 space-y-1.5 text-sm">
+                  {/* House price */}
                   <div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span>Стоимость дома</span>
-                      <span className="font-semibold">{housePrice.toLocaleString("ru-RU")} ₽</span>
+                      {hasTodayDiscount ? (
+                        <span className="flex items-center gap-2">
+                          <span className="line-through text-muted-foreground">{housePrice.toLocaleString("ru-RU")} ₽</span>
+                        </span>
+                      ) : (
+                        <span className="font-semibold">{housePrice.toLocaleString("ru-RU")} ₽</span>
+                      )}
                     </div>
+                    {hasTodayDiscount && (
+                      <p className="text-xs font-semibold text-emerald-600 mt-0.5">
+                        Сегодня цена снижена — {discountedHousePrice.toLocaleString("ru-RU")} ₽
+                      </p>
+                    )}
                     <p className="text-[10px] text-muted-foreground">цена указана на 2 гостя</p>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Баня</span>
-                    <span className="font-semibold">5 000 ₽</span>
+
+                  {/* Sauna */}
+                  <div>
+                    <div className="flex justify-between items-center">
+                      <span>Баня</span>
+                      {hasTodayDiscount ? (
+                        <span className="flex items-center gap-2">
+                          <span className="line-through text-muted-foreground">5 000 ₽</span>
+                          <span className="font-semibold text-emerald-600">{SAUNA_DISCOUNTED.toLocaleString("ru-RU")} ₽</span>
+                        </span>
+                      ) : (
+                        <span className="font-semibold">5 000 ₽</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Банный чан</span>
-                    <span className="font-semibold">{plungePrice.toLocaleString("ru-RU")} ₽</span>
+
+                  {/* Plunge pool */}
+                  <div>
+                    <div className="flex justify-between items-center">
+                      <span>Банный чан</span>
+                      {hasTodayDiscount ? (
+                        <span className="flex items-center gap-2">
+                          <span className="line-through text-muted-foreground">{plungePrice.toLocaleString("ru-RU")} ₽</span>
+                          <span className="font-semibold text-emerald-600">{PLUNGE_DISCOUNTED.toLocaleString("ru-RU")} ₽</span>
+                        </span>
+                      ) : (
+                        <span className="font-semibold">{plungePrice.toLocaleString("ru-RU")} ₽</span>
+                      )}
+                    </div>
+                    {hasTodayDiscount && (
+                      <p className="text-[10px] text-emerald-600">Цена снижена, если берете вместе с баней</p>
+                    )}
                   </div>
+
                   <div className="flex justify-between">
                     <span>Пихтовая запарка в чан</span>
                     <span className="font-semibold">500 ₽</span>
