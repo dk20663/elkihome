@@ -17,8 +17,8 @@ interface Props {
   house: House | null;
   open: boolean;
   onClose: () => void;
-  onEdit: () => void;
-  onCancel: () => void;
+  onEdit: (b?: Booking) => void;
+  onCancel: (b?: Booking) => void;
   cancelledBookings?: Booking[];
   houses?: House[];
   onShowCancelled?: () => void;
