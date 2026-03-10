@@ -157,8 +157,8 @@ export default function BookingDetail({
                   <BookingCard
                     booking={b}
                     house={bHouse}
-                    onEdit={() => { onSelectBooking?.(b); onEdit(); }}
-                    onCancel={() => { onSelectBooking?.(b); onCancel(); }}
+                    onEdit={() => onEdit(b)}
+                    onCancel={() => onCancel(b)}
                   />
                 </div>
               );

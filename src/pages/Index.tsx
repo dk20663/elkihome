@@ -176,8 +176,9 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
     }
   };
 
-  const handleCancelBooking = async () => {
-    if (!selectedBooking) return;
+  const handleCancelBooking = async (bookingToCancel?: Booking | null) => {
+    const target = bookingToCancel || selectedBooking;
+    if (!target) return;
     try {
       await cancelBooking.mutateAsync(selectedBooking.id);
       toast.success("Заезд отменён");
