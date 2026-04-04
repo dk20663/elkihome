@@ -198,11 +198,34 @@ export default function CalendarGrid({
               return false;
             };
 
+            // Check if booking continues from/to outside visible month
+            const bookingContinuesFromBefore = (() => {
+              // Check if any booking on this day started before this day
+              const allIds = [...status.greenBookingIds, ...status.blackBookingIds];
+              return allIds.some(id => {
+                const b = bookings.find(bk => bk.id === id);
+                return b && parseISO(b.check_in) < day;
+              });
+            })();
+            const bookingContinuesToAfter = (() => {
+              const allIds = [...status.greenBookingIds, ...status.blackBookingIds];
+              return allIds.some(id => {
+                const b = bookings.find(bk => bk.id === id);
+                return b && parseISO(b.check_out) > addDays(day, 1);
+              });
+            })();
+
+            const prevDayInGrid = colIndex > 0;
+            const nextDayInGrid = colIndex < 6;
             const prevDayInMonth = isSameMonth(subDays(day, 1), month);
             const nextDayInMonth = isSameMonth(addDays(day, 1), month);
-            const prevSame = colIndex > 0 && prevStatus && sharesBookingWithPrev(status, prevStatus) && prevDayInMonth;
-            // For next: also check across rows (colIndex === 6 means end of row, next day starts new row but still connected)
-            const nextSame = colIndex < 6 && nextStatus && sharesBookingWithPrev(status, nextStatus) && nextDayInMonth;
+            
+            // Connect to previous if: same row + same booking + both in month
+            // OR if booking continues from before month and this is the first visible day of the booking
+            const prevSame = (prevDayInGrid && prevStatus && sharesBookingWithPrev(status, prevStatus) && prevDayInMonth)
+              || (!prevDayInMonth && inMonth && bookingContinuesFromBefore && colIndex > 0);
+            const nextSame = (nextDayInGrid && nextStatus && sharesBookingWithPrev(status, nextStatus) && nextDayInMonth)
+              || (!nextDayInMonth && inMonth && bookingContinuesToAfter && colIndex < 6);
 
             if (prevSame && nextSame) {
               borderRadiusStyle = { borderRadius: 0 };
