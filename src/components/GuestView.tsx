@@ -71,7 +71,7 @@ export default function GuestView({ onBack }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 flex flex-col max-w-md mx-auto">
+    <div className="min-h-screen bg-background p-4 flex flex-col lg:max-w-5xl max-w-md mx-auto">
       <div className="flex items-center gap-2 mb-4">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
           <ArrowLeft className="h-5 w-5" />

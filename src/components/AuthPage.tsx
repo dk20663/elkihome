@@ -59,8 +59,8 @@ export default function AuthPage({ onBack }: AuthPageProps) {
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Логин</label>
                 <Input
-                  type="email"
-                  placeholder="admin@elkihome.local"
+                  type="text"
+                  placeholder="admin"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
