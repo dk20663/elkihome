@@ -125,7 +125,7 @@ export default function CalendarGrid({
           <div
             key={d}
             className={cn(
-              "text-center text-[10px] font-medium text-muted-foreground py-1",
+              "text-center text-[10px] lg:text-sm font-medium text-muted-foreground py-1 lg:py-2",
               (i === 5 || i === 6) && "font-bold text-foreground/70"
             )}
           >
