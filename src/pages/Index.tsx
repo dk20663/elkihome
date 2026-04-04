@@ -257,7 +257,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
   const displayName = telegramUser?.first_name || telegramUser?.username || user.email;
 
   return (
-    <div className="min-h-screen bg-background max-w-md mx-auto flex flex-col">
+    <div className="min-h-screen bg-background mx-auto flex flex-col lg:max-w-5xl max-w-md">
       <header className="flex items-center justify-between px-4 pt-4 pb-2">
         <div>
           <h1 className="text-lg font-bold leading-tight">Бронирования</h1>

@@ -183,7 +183,7 @@ export default function CalendarGrid({
             const nextStatus = dayStatusMap.get(nextKey);
 
             // Check if neighbor shares a booking ID (not just same color)
-            const sharesBooking = (a: typeof status, b: typeof prevStatus) => {
+            const sharesBookingWithPrev = (a: typeof status, b: typeof prevStatus) => {
               if (!b) return false;
               if (filter === "green" || filter === "all") {
                 for (const id of a.greenBookingIds) {
@@ -198,8 +198,11 @@ export default function CalendarGrid({
               return false;
             };
 
-            const prevSame = colIndex > 0 && prevStatus && sharesBooking(status, prevStatus) && isSameMonth(subDays(day, 1), month);
-            const nextSame = colIndex < 6 && nextStatus && sharesBooking(status, nextStatus) && isSameMonth(addDays(day, 1), month);
+            const prevDayInMonth = isSameMonth(subDays(day, 1), month);
+            const nextDayInMonth = isSameMonth(addDays(day, 1), month);
+            const prevSame = colIndex > 0 && prevStatus && sharesBookingWithPrev(status, prevStatus) && prevDayInMonth;
+            // For next: also check across rows (colIndex === 6 means end of row, next day starts new row but still connected)
+            const nextSame = colIndex < 6 && nextStatus && sharesBookingWithPrev(status, nextStatus) && nextDayInMonth;
 
             if (prevSame && nextSame) {
               borderRadiusStyle = { borderRadius: 0 };
