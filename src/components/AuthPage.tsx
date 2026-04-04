@@ -1,6 +1,10 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Home, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Home, AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AuthPageProps {
   onBack?: () => void;
@@ -9,6 +13,24 @@ interface AuthPageProps {
 export default function AuthPage({ onBack }: AuthPageProps) {
   const tg = (window as any).Telegram?.WebApp;
   const hasTelegram = !!tg?.initData;
+  const { signIn } = useAuth();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleWebLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    setSubmitting(true);
+    try {
+      await signIn(email, password);
+    } catch (err: any) {
+      toast.error("Ошибка входа", { description: err.message || "Неверный логин или пароль" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -33,23 +55,35 @@ export default function AuthPage({ onBack }: AuthPageProps) {
               <span>Ваш аккаунт не имеет доступа к системе</span>
             </div>
           ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Для доступа откройте приложение через Telegram
+            <form onSubmit={handleWebLogin} className="space-y-3 text-left">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Логин</label>
+                <Input
+                  type="email"
+                  placeholder="admin@elkihome.local"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Пароль</label>
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Войти
+              </Button>
+              <p className="text-xs text-muted-foreground/70 text-center">
+                Доступ только для администраторов
               </p>
-              <a
-                href="https://t.me/ElkiHome24_Bot/app"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button className="w-full">
-                  Открыть в Telegram
-                </Button>
-              </a>
-              <p className="text-xs text-muted-foreground/70">
-                Доступ только для авторизованных пользователей
-              </p>
-            </div>
+            </form>
           )}
         </CardContent>
       </Card>
