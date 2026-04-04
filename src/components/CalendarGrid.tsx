@@ -243,7 +243,7 @@ export default function CalendarGrid({
               disabled={!inMonth}
               style={borderRadiusStyle}
               className={cn(
-                "relative flex flex-col items-center justify-center aspect-square text-xs transition-all rounded-[var(--radius)]",
+                "relative flex flex-col items-center justify-center aspect-square text-xs lg:text-lg transition-all rounded-[var(--radius)]",
                 !inMonth && "opacity-20 pointer-events-none",
                 inMonth && !hasActiveBooking && "hover:bg-secondary",
                 inMonth && isWeekend && !cellBg && "bg-muted/40",
