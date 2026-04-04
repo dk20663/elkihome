@@ -42,7 +42,6 @@ export function useAuth() {
       const initData = tg?.initData;
 
       if (!initData) {
-        // Dev fallback: try to restore session
         setLoading(false);
         return;
       }
@@ -81,9 +80,14 @@ export function useAuth() {
     }
   };
 
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
-  return { user, telegramUser, loading, signOut };
+  return { user, telegramUser, loading, signIn, signOut };
 }
