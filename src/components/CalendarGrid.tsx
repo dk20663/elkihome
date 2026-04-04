@@ -151,9 +151,9 @@ export default function CalendarGrid({
               <button
                 key={day.toISOString()}
                 disabled
-                className="relative flex flex-col items-center justify-center aspect-square text-xs opacity-20 pointer-events-none"
+                className="relative flex flex-col items-center justify-center aspect-square text-xs lg:text-lg opacity-20 pointer-events-none"
               >
-                <span className="font-semibold leading-none text-muted-foreground">
+                <span className="font-semibold leading-none lg:text-lg text-muted-foreground">
                   {format(day, "d")}
                 </span>
               </button>
