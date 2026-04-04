@@ -125,7 +125,7 @@ export default function CalendarGrid({
           <div
             key={d}
             className={cn(
-              "text-center text-[10px] font-medium text-muted-foreground py-1",
+              "text-center text-[10px] lg:text-sm font-medium text-muted-foreground py-1 lg:py-2",
               (i === 5 || i === 6) && "font-bold text-foreground/70"
             )}
           >
@@ -151,9 +151,9 @@ export default function CalendarGrid({
               <button
                 key={day.toISOString()}
                 disabled
-                className="relative flex flex-col items-center justify-center aspect-square text-xs opacity-20 pointer-events-none"
+                className="relative flex flex-col items-center justify-center aspect-square text-xs lg:text-lg opacity-20 pointer-events-none"
               >
-                <span className="font-semibold leading-none text-muted-foreground">
+                <span className="font-semibold leading-none lg:text-lg text-muted-foreground">
                   {format(day, "d")}
                 </span>
               </button>
@@ -243,7 +243,7 @@ export default function CalendarGrid({
               disabled={!inMonth}
               style={borderRadiusStyle}
               className={cn(
-                "relative flex flex-col items-center justify-center aspect-square text-xs transition-all rounded-[var(--radius)]",
+                "relative flex flex-col items-center justify-center aspect-square text-xs lg:text-lg transition-all rounded-[var(--radius)]",
                 !inMonth && "opacity-20 pointer-events-none",
                 inMonth && !hasActiveBooking && "hover:bg-secondary",
                 inMonth && isWeekend && !cellBg && "bg-muted/40",
@@ -257,7 +257,7 @@ export default function CalendarGrid({
             >
               <span
                 className={cn(
-                  "font-semibold leading-none",
+                  "font-semibold leading-none lg:text-lg",
                   isCurrentDay && !cellBg && "text-primary",
                   (greenBooked && blackBooked) && "text-primary-foreground",
                   (filter === "green" && greenBooked) && "text-primary-foreground",
