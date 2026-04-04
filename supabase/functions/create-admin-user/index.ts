@@ -17,25 +17,33 @@ Deno.serve(async (req) => {
     );
 
     const email = "admin@elkihome.local";
-    const password = "Den12344321Qq+";
+    const newPassword = "12344321Qq";
 
-    // Try to create the user
+    // Try to find existing user and update password
+    const { data: users } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = users?.users?.find((u: any) => u.email === email);
+
+    if (existingUser) {
+      // Update password for existing user
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        existingUser.id,
+        { password: newPassword }
+      );
+      if (updateError) throw updateError;
+      return new Response(
+        JSON.stringify({ success: true, message: "Admin password updated" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create new user
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
-      password,
+      password: newPassword,
       email_confirm: true,
     });
 
-    if (error) {
-      // User might already exist
-      if (error.message?.includes("already") || error.message?.includes("exists")) {
-        return new Response(
-          JSON.stringify({ success: true, message: "Admin user already exists" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      throw error;
-    }
+    if (error) throw error;
 
     return new Response(
       JSON.stringify({ success: true, message: "Admin user created", user_id: data.user.id }),

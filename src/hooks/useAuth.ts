@@ -80,7 +80,9 @@ export function useAuth() {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (login: string, password: string) => {
+    // If user types just "admin", convert to full email
+    const email = login.includes("@") ? login : `${login}@elkihome.local`;
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   };
