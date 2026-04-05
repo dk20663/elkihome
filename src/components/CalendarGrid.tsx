@@ -145,7 +145,7 @@ export default function CalendarGrid({
           const dayBookings = getBookingsForDate(day, filteredBookings);
           const dayKey = format(day, "yyyy-MM-dd");
           const status = dayStatusMap.get(dayKey)!;
-          const { greenBooked, blackBooked, cellBg } = status;
+          const { greenBooked, blackBooked, cellBg, hasAvitoSync } = status;
           const dayOfWeek = getDay(day);
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
