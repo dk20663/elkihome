@@ -24,6 +24,7 @@ export type Database = {
           comment: string | null
           created_at: string
           created_by: string | null
+          external_uid: string | null
           fir_infusion: boolean
           guest_count: number
           guest_name: string
@@ -33,6 +34,7 @@ export type Database = {
           plunge_pool: boolean
           sauna: boolean
           source: string
+          synced_from: string | null
           total_price: number
           updated_at: string
         }
@@ -45,6 +47,7 @@ export type Database = {
           comment?: string | null
           created_at?: string
           created_by?: string | null
+          external_uid?: string | null
           fir_infusion?: boolean
           guest_count?: number
           guest_name?: string
@@ -54,6 +57,7 @@ export type Database = {
           plunge_pool?: boolean
           sauna?: boolean
           source?: string
+          synced_from?: string | null
           total_price?: number
           updated_at?: string
         }
@@ -66,6 +70,7 @@ export type Database = {
           comment?: string | null
           created_at?: string
           created_by?: string | null
+          external_uid?: string | null
           fir_infusion?: boolean
           guest_count?: number
           guest_name?: string
@@ -75,6 +80,7 @@ export type Database = {
           plunge_pool?: boolean
           sauna?: boolean
           source?: string
+          synced_from?: string | null
           total_price?: number
           updated_at?: string
         }
