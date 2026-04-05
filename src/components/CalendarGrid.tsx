@@ -179,7 +179,7 @@ export default function CalendarGrid({
 
           // Strip connectivity: booking-aware (share same booking ID with neighbor)
           let borderRadiusStyle: React.CSSProperties = {};
-          if (!isPublicView && cellBg && inMonth) {
+          if (!isPublicView && cellBg) {
             const colIndex = idx % 7;
             const prevKey = format(subDays(day, 1), "yyyy-MM-dd");
             const nextKey = format(addDays(day, 1), "yyyy-MM-dd");
@@ -202,9 +202,8 @@ export default function CalendarGrid({
               return false;
             };
 
-            // Check if booking continues from/to outside visible month
+            // Check if booking continues from/to outside visible grid
             const bookingContinuesFromBefore = (() => {
-              // Check if any booking on this day started before this day
               const allIds = [...status.greenBookingIds, ...status.blackBookingIds];
               return allIds.some(id => {
                 const b = bookings.find(bk => bk.id === id);
@@ -221,15 +220,11 @@ export default function CalendarGrid({
 
             const prevDayInGrid = colIndex > 0;
             const nextDayInGrid = colIndex < 6;
-            const prevDayInMonth = isSameMonth(subDays(day, 1), month);
-            const nextDayInMonth = isSameMonth(addDays(day, 1), month);
             
-            // Connect to previous if: same row + same booking + both in month
-            // OR if booking continues from before month and this is the first visible day of the booking
-            const prevSame = (prevDayInGrid && prevStatus && sharesBookingWithPrev(status, prevStatus) && prevDayInMonth)
-              || (!prevDayInMonth && inMonth && bookingContinuesFromBefore && colIndex > 0);
-            const nextSame = (nextDayInGrid && nextStatus && sharesBookingWithPrev(status, nextStatus) && nextDayInMonth)
-              || (!nextDayInMonth && inMonth && bookingContinuesToAfter && colIndex < 6);
+            const prevSame = (prevDayInGrid && prevStatus && sharesBookingWithPrev(status, prevStatus))
+              || (!prevDayInGrid && bookingContinuesFromBefore);
+            const nextSame = (nextDayInGrid && nextStatus && sharesBookingWithPrev(status, nextStatus))
+              || (!nextDayInGrid && bookingContinuesToAfter);
 
             if (prevSame && nextSame) {
               borderRadiusStyle = { borderRadius: 0 };
@@ -248,13 +243,15 @@ export default function CalendarGrid({
               style={borderRadiusStyle}
               className={cn(
                 "relative flex flex-col items-center justify-center aspect-square text-xs lg:text-lg transition-all rounded-[var(--radius)]",
-                !inMonth && "opacity-20 pointer-events-none",
+                !inMonth && !cellBg && "opacity-20 pointer-events-none",
+                !inMonth && cellBg && "opacity-40 pointer-events-none",
                 inMonth && !hasActiveBooking && "hover:bg-secondary",
                 inMonth && isWeekend && !cellBg && "bg-muted/40",
                 isInRange && "bg-primary/10",
                 isRangeStart && "ring-2 ring-primary",
                 isRangeEnd && "ring-2 ring-primary",
                 cellBg,
+                !isPublicView && hasAvitoSync && cellBg && "avito-synced",
                 // Today: inset outline
                 isCurrentDay && "calendar-today-outline"
               )}
