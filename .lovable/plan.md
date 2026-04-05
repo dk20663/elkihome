@@ -1,43 +1,59 @@
 
 
-## Plan: Web Login for Admin Mode
+## Plan
 
-### Problem
-Currently admin access only works via Telegram auth. Need to add email/password login for web browser access with hardcoded credentials (admin / Den12344321Qq+).
+### 1. Fix cross-month booking strip breaks in CalendarGrid
 
-### Approach
+**Problem:** The strip connectivity logic (line 178) is gated on `inMonth`, so out-of-month days shown at the edges of the calendar grid don't participate in strip rendering. A booking spanning March 29 - April 2 appears as disconnected chunks.
 
-The system already creates Supabase auth users for Telegram users. We need to:
+**Fix in `CalendarGrid.tsx`:**
+- Remove the `inMonth` gate from the strip connectivity logic — apply border-radius calculations to ALL days in the grid (including out-of-month days)
+- For out-of-month days that are part of a booking, apply the `cellBg` class but with reduced opacity (e.g., `opacity-40` instead of `opacity-20`) so they're visually connected but still distinguishable as not-current-month
+- The `disabled` and `pointer-events-none` behavior remains for out-of-month days
 
-1. **Create an admin user in the database** via edge function or migration — email `admin@elkihome.local`, password `Den12344321Qq+`. This will be a real Supabase auth user that can perform authenticated operations (same RLS policies apply).
+### 2. Avito iCal Synchronization
 
-2. **Add login form to `AuthPage.tsx`** — when not in Telegram (no `initData`), show a simple login/password form instead of "Open in Telegram" link. On submit, call `supabase.auth.signInWithPassword()`.
+**Yes, this is doable.** Avito uses standard iCal (.ics) format for calendar sync. The plan:
 
-3. **Update `useAuth.ts`** — add a `signInWithPassword(email, password)` method that the login form can call. The existing `onAuthStateChange` listener will handle setting the user state automatically.
+#### 2a. Import from Avito (close dates in our calendar)
 
-4. **Create the admin user** — add an edge function `create-admin-user` that creates the user via `supabase.auth.admin.createUser()` with `email_confirm: true`. Call it once to seed the account. Alternatively, do this via a migration or manually — but the simplest reliable approach is an edge function we invoke once.
+- Create an edge function `sync-avito` that:
+  - Fetches the two Avito .ics URLs
+  - Parses iCal VEVENT entries to extract booked date ranges
+  - Upserts bookings into the `bookings` table with a new `source` value like `"avito_sync"` and a flag to distinguish auto-synced entries
+- Add a `synced_from` column (nullable text) to `bookings` table — when set to `"avito"`, indicates auto-synced booking
+- Schedule this edge function via pg_cron (e.g., every 30 minutes) to keep dates up to date
+- In guest view: synced bookings display identically to manual bookings (date closed)
+- In admin view: synced bookings show with a distinct color shade + label "Закрыто при синхронизации с Авито" in the date card
+- Admin can still cancel synced bookings ("отмена заезда"), and can edit all booking fields manually
 
-### Technical Details
+#### 2b. Export our calendar as .ics (for Avito to import)
 
-**Edge function `create-admin-user/index.ts`:**
-- Uses service role key to call `auth.admin.createUser({ email: "admin@elkihome.local", password: "Den12344321Qq+", email_confirm: true })`
-- Idempotent — returns success if user already exists
+- Create an edge function `export-ical` that:
+  - Accepts a `house` query param (`green` or `black`)
+  - Queries active (non-cancelled) bookings for that house
+  - Returns a valid .ics file with VEVENT entries
+- Publish stable URLs like:
+  - `https://<project>.supabase.co/functions/v1/export-ical?house=green`
+  - `https://<project>.supabase.co/functions/v1/export-ical?house=black`
+- These URLs can be pasted into Avito's calendar import settings
 
-**`AuthPage.tsx` changes:**
-- When `!hasTelegram`: render email + password inputs + "Войти" button
-- On submit: call `supabase.auth.signInWithPassword({ email, password })`
-- Show error toast on failure
-- Keep the back button
+#### Database changes
 
-**`useAuth.ts` changes:**
-- Add `signIn(email: string, password: string)` function
-- Return it from the hook so AuthPage can use it
-- No other changes needed — `onAuthStateChange` already handles session
+- Add column `synced_from` (text, nullable, default null) to `bookings` table
+- Add column `external_uid` (text, nullable) to avoid duplicate imports from the same iCal event
 
-**No database changes needed** — all tables use `authenticated` role RLS, so the new web admin user gets the same access as Telegram users.
+#### Admin calendar display
 
-### Files to Create/Modify
-- `supabase/functions/create-admin-user/index.ts` — new edge function
-- `src/hooks/useAuth.ts` — add `signIn` method
-- `src/components/AuthPage.tsx` — add login form for web
+- In `CalendarGrid.tsx`: when a booking has `synced_from = 'avito'`, use a slightly different shade (e.g., lighter/hatched variant of the house color) so admin can visually distinguish auto-synced dates
+- In `BookingDetail.tsx` / `DateActionDialog.tsx`: show "Закрыто при синхронизации с Авито" badge, plus all editable fields as usual
+
+#### Files to create/modify
+- **New:** `supabase/functions/sync-avito/index.ts` — import .ics from Avito
+- **New:** `supabase/functions/export-ical/index.ts` — export .ics for Avito
+- **Migration:** add `synced_from` and `external_uid` columns to `bookings`
+- **Modify:** `CalendarGrid.tsx` — cross-month fix + avito color distinction
+- **Modify:** `BookingDetail.tsx` / `DateActionDialog.tsx` — show avito sync label
+- **Modify:** `src/lib/types.ts` — add new fields to Booking type
+- **pg_cron:** schedule sync-avito every 30 minutes
 
