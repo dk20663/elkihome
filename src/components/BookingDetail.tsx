@@ -44,6 +44,9 @@ function BookingCard({ booking, house, onEdit, onCancel }: { booking: Booking; h
         <span className={`h-3 w-3 rounded-full ${house.name === "GREEN" ? "bg-house-green" : "bg-house-black"}`} />
         <span className="font-semibold">Дом {house.name}</span>
         {booking.cancelled && <Badge variant="destructive" className="text-xs">ОТМЕНЕНО</Badge>}
+        {(booking as any).synced_from === "avito" && !booking.cancelled && (
+          <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 border-amber-300">Авито</Badge>
+        )}
       </div>
 
       {services.length > 0 && (
