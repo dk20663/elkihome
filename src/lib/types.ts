@@ -25,6 +25,8 @@ export interface Booking {
   fir_infusion: boolean;
   citrus_infusion: boolean;
   created_by: string | null;
+  synced_from: string | null;
+  external_uid: string | null;
   created_at: string;
   updated_at: string;
   houses?: House;
