@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.create-admin-user]
 verify_jwt = false
+
+[functions.sync-avito]
+verify_jwt = false
+
+[functions.export-ical]
+verify_jwt = false
