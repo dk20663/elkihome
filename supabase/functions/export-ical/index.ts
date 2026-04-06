@@ -35,12 +35,13 @@ Deno.serve(async (req) => {
       return new Response("House not found", { status: 404, headers: corsHeaders });
     }
 
-    // Get active bookings
+    // Get active bookings - exclude avito-synced to prevent feedback loop
     const { data: bookings, error } = await supabase
       .from("bookings")
-      .select("id, check_in, check_out, guest_name")
+      .select("id, check_in, check_out")
       .eq("house_id", houses.id)
-      .eq("cancelled", false);
+      .eq("cancelled", false)
+      .is("synced_from", null);
 
     if (error) throw error;
 
