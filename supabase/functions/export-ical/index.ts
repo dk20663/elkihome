@@ -60,7 +60,7 @@ X-WR-CALNAME:ElkiHome ${houseName}
 UID:elkihome-${b.id}
 DTSTART;VALUE=DATE:${formatDate(b.check_in)}
 DTEND;VALUE=DATE:${formatDate(b.check_out)}
-SUMMARY:${b.guest_name || "Занято"}
+SUMMARY:Занято
 DTSTAMP:${now}
 END:VEVENT
 `;
