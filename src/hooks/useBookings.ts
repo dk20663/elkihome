@@ -70,11 +70,19 @@ export function useCreateBooking() {
   return useMutation({
     mutationFn: async (data: BookingFormData) => {
       const { data: user } = await supabase.auth.getUser();
-      const { error } = await supabase.from("bookings").insert({
+      const payload = {
         ...data,
         created_by: user.user?.id || null,
-      });
-      if (error) throw error;
+      };
+      // Retry up to 3 times on transient failures
+      let lastError: Error | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { error } = await supabase.from("bookings").insert(payload);
+        if (!error) return;
+        lastError = new Error(error.message);
+        if (attempt < 2) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+      }
+      throw lastError;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookings"] }),
   });
