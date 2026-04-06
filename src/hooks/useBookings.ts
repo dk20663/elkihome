@@ -92,11 +92,17 @@ export function useUpdateBooking() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: BookingFormData & { id: string }) => {
-      const { error } = await supabase
-        .from("bookings")
-        .update(data)
-        .eq("id", id);
-      if (error) throw error;
+      let lastError: Error | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { error } = await supabase
+          .from("bookings")
+          .update(data)
+          .eq("id", id);
+        if (!error) return;
+        lastError = new Error(error.message);
+        if (attempt < 2) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+      }
+      throw lastError;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookings"] }),
   });

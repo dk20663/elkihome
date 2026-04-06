@@ -33,6 +33,11 @@ function parseICS(icsText: string): Array<{ uid: string; dtstart: string; dtend:
   return events;
 }
 
+// Check if date ranges overlap
+function datesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+  return aStart < bEnd && bStart < aEnd;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -53,6 +58,7 @@ Deno.serve(async (req) => {
     }
 
     let totalSynced = 0;
+    let totalSkipped = 0;
 
     for (const [houseName, feedUrl] of Object.entries(AVITO_FEEDS)) {
       const houseId = houseMap[houseName];
@@ -73,21 +79,40 @@ Deno.serve(async (req) => {
 
       const events = parseICS(icsText);
 
-      // Get existing external_uids for this house to know what's already synced
-      const { data: existing } = await supabase
+      // Get existing avito-synced external_uids for this house
+      const { data: existingSynced } = await supabase
         .from("bookings")
         .select("external_uid")
         .eq("house_id", houseId)
         .eq("synced_from", "avito")
         .not("external_uid", "is", null);
 
-      const existingUids = new Set((existing || []).map((e) => e.external_uid));
+      const existingUids = new Set((existingSynced || []).map((e) => e.external_uid));
+
+      // Get ALL manual (non-avito) active bookings for this house to check for overlaps
+      const { data: manualBookings } = await supabase
+        .from("bookings")
+        .select("check_in, check_out")
+        .eq("house_id", houseId)
+        .eq("cancelled", false)
+        .is("synced_from", null);
+
+      const manualList = manualBookings || [];
 
       for (const ev of events) {
         const extUid = `avito_${houseName}_${ev.uid}`;
 
         if (existingUids.has(extUid)) {
-          // Already exists, skip
+          continue;
+        }
+
+        // Skip if a manual booking already covers this date range
+        const hasManualOverlap = manualList.some((mb) =>
+          datesOverlap(ev.dtstart, ev.dtend, mb.check_in, mb.check_out)
+        );
+
+        if (hasManualOverlap) {
+          totalSkipped++;
           continue;
         }
 
@@ -103,7 +128,6 @@ Deno.serve(async (req) => {
         });
 
         if (insertErr) {
-          // Duplicate uid constraint will prevent re-inserts
           if (!insertErr.message.includes("duplicate") && !insertErr.message.includes("unique")) {
             console.error(`Insert error for ${extUid}:`, insertErr.message);
           }
@@ -113,7 +137,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, synced: totalSynced }), {
+    return new Response(JSON.stringify({ ok: true, synced: totalSynced, skipped: totalSkipped }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
