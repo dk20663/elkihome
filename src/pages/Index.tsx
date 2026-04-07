@@ -64,9 +64,6 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
 
   const [month, setMonth] = useState(new Date());
   const [filter, setFilter] = useState<HouseFilterType>("all");
-  const [showForm, setShowForm] = useState(false);
-  const [showDetail, setShowDetail] = useState(false);
-  const [showPublic, setShowPublic] = useState(false);
   const [showPriceSettings, setShowPriceSettings] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [editBooking, setEditBooking] = useState<Booking | null>(null);
