@@ -16,6 +16,7 @@ import CancelledBookingsSheet from "@/components/CancelledBookingsSheet";
 import DateActionDialog from "@/components/DateActionDialog";
 import DatePriceEditor from "@/components/DatePriceEditor";
 import AuthPage from "@/components/AuthPage";
+import VisitorCounter from "@/components/VisitorCounter";
 import { useAuth } from "@/hooks/useAuth";
 import { useHouses } from "@/hooks/useHouses";
 import { useBookings, useCreateBooking, useUpdateBooking, useCancelBooking, useRestoreBooking, useDeleteBooking } from "@/hooks/useBookings";
