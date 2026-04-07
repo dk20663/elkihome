@@ -290,9 +290,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowPriceSettings(true)} title="Настройки цен">
             <Settings className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowPublic(true)} title="Публичный вид">
-            <Eye className="h-4 w-4" />
-          </Button>
+          <VisitorCounter />
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
             signOut();
             onBackToRoles();
