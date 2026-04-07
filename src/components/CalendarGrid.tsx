@@ -95,18 +95,25 @@ export default function CalendarGrid({
       cellBg: string;
       greenBookingIds: Set<string>;
       blackBookingIds: Set<string>;
-      hasAvitoSync: boolean;
+      greenHasAvito: boolean;
+      blackHasAvito: boolean;
     }>();
     for (const day of days) {
       const allDayBookings = getBookingsForDate(day, bookings);
       const greenIds = new Set<string>();
       const blackIds = new Set<string>();
-      let hasAvito = false;
+      let greenAvito = false;
+      let blackAvito = false;
       for (const b of allDayBookings) {
         if (b.cancelled) continue;
-        if (greenHouse && b.house_id === greenHouse.id) greenIds.add(b.id);
-        if (blackHouse && b.house_id === blackHouse.id) blackIds.add(b.id);
-        if ((b as any).synced_from === "avito") hasAvito = true;
+        if (greenHouse && b.house_id === greenHouse.id) {
+          greenIds.add(b.id);
+          if (b.synced_from === "avito") greenAvito = true;
+        }
+        if (blackHouse && b.house_id === blackHouse.id) {
+          blackIds.add(b.id);
+          if (b.synced_from === "avito") blackAvito = true;
+        }
       }
       const gb = greenIds.size > 0;
       const bb = blackIds.size > 0;
@@ -116,7 +123,8 @@ export default function CalendarGrid({
         cellBg: getCellBg(gb, bb, filter),
         greenBookingIds: greenIds,
         blackBookingIds: blackIds,
-        hasAvitoSync: hasAvito,
+        greenHasAvito: greenAvito,
+        blackHasAvito: blackAvito,
       });
     }
     return map;
