@@ -258,8 +258,15 @@ export default function CalendarGrid({
                 isInRange && "bg-primary/10",
                 isRangeStart && "ring-2 ring-primary",
                 isRangeEnd && "ring-2 ring-primary",
-                cellBg,
-                !isPublicView && hasAvitoSync && cellBg && "avito-synced",
+                isPublicView && isPast ? "" : cellBg,
+                !isPublicView && cellBg && (
+                  (filter === "green" && greenHasAvito) ? "avito-synced-green" :
+                  (filter === "black" && blackHasAvito) ? "avito-synced-black" :
+                  (filter === "all" && greenHasAvito && blackHasAvito) ? "avito-synced" :
+                  (filter === "all" && greenHasAvito && !blackHasAvito) ? "avito-synced-green" :
+                  (filter === "all" && !greenHasAvito && blackHasAvito) ? "avito-synced-black" :
+                  ""
+                ),
                 // Today: inset outline
                 isCurrentDay && "calendar-today-outline"
               )}
