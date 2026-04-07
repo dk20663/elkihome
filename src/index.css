@@ -156,9 +156,11 @@
     box-shadow: inset 0 0 0 2px hsl(217 91% 60%);
   }
 
-  /* Avito synced cells — striped overlay */
-  .calendar-cell-green-full.avito-synced,
-  .calendar-cell-green-only.avito-synced {
+  /* Avito synced cells — striped overlay per house */
+  .avito-synced-green.calendar-cell-green-full,
+  .avito-synced-green.calendar-cell-green-only,
+  .avito-synced.calendar-cell-green-full,
+  .avito-synced.calendar-cell-green-only {
     background: repeating-linear-gradient(
       45deg,
       hsl(var(--house-green)),
@@ -167,8 +169,10 @@
       hsl(var(--house-green) / 0.6) 8px
     );
   }
-  .calendar-cell-black-full.avito-synced,
-  .calendar-cell-black-only.avito-synced {
+  .avito-synced-black.calendar-cell-black-full,
+  .avito-synced-black.calendar-cell-black-only,
+  .avito-synced.calendar-cell-black-full,
+  .avito-synced.calendar-cell-black-only {
     background: repeating-linear-gradient(
       45deg,
       hsl(var(--house-black)),
@@ -177,13 +181,80 @@
       hsl(var(--house-black) / 0.6) 8px
     );
   }
-  .calendar-cell-both.avito-synced {
-    background: repeating-linear-gradient(
+  /* Both houses: avito on green half only */
+  .avito-synced-green.calendar-cell-both {
+    background: linear-gradient(
+      135deg,
+      transparent 50%,
+      hsl(var(--house-black)) 50%
+    ),
+    repeating-linear-gradient(
       45deg,
       hsl(var(--house-green)),
       hsl(var(--house-green)) 4px,
       hsl(var(--house-green) / 0.6) 4px,
       hsl(var(--house-green) / 0.6) 8px
+    );
+  }
+  /* Both houses: avito on black half only */
+  .avito-synced-black.calendar-cell-both {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--house-green)) 50%,
+      transparent 50%
+    ),
+    repeating-linear-gradient(
+      45deg,
+      hsl(var(--house-black)),
+      hsl(var(--house-black)) 4px,
+      hsl(var(--house-black) / 0.6) 4px,
+      hsl(var(--house-black) / 0.6) 8px
+    );
+  }
+  /* Both houses: avito on both */
+  .avito-synced.calendar-cell-both {
+    background: 
+      linear-gradient(
+        135deg,
+        transparent 50%,
+        transparent 50%
+      ),
+      repeating-linear-gradient(
+        45deg,
+        hsl(var(--house-green)),
+        hsl(var(--house-green)) 4px,
+        hsl(var(--house-green) / 0.6) 4px,
+        hsl(var(--house-green) / 0.6) 8px
+      );
+  }
+  /* Green-only cell with avito on green */
+  .avito-synced-green.calendar-cell-green-only {
+    background: linear-gradient(
+      135deg,
+      transparent 50%,
+      hsl(var(--background)) 50%
+    ),
+    repeating-linear-gradient(
+      45deg,
+      hsl(var(--house-green)),
+      hsl(var(--house-green)) 4px,
+      hsl(var(--house-green) / 0.6) 4px,
+      hsl(var(--house-green) / 0.6) 8px
+    );
+  }
+  /* Black-only cell with avito on black */
+  .avito-synced-black.calendar-cell-black-only {
+    background: linear-gradient(
+      315deg,
+      transparent 50%,
+      hsl(var(--background)) 50%
+    ),
+    repeating-linear-gradient(
+      45deg,
+      hsl(var(--house-black)),
+      hsl(var(--house-black)) 4px,
+      hsl(var(--house-black) / 0.6) 4px,
+      hsl(var(--house-black) / 0.6) 8px
     );
   }
 }

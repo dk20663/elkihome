@@ -1,14 +1,14 @@
 import { useState, useCallback, useMemo } from "react";
 import { format, addMonths, subMonths, parseISO, isSameDay, isAfter, isBefore } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Eye, LogOut, Settings, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, LogOut, Settings, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CalendarGrid from "@/components/CalendarGrid";
 import HouseFilter from "@/components/HouseFilter";
 import MonthStats from "@/components/MonthStats";
 import BookingForm from "@/components/BookingForm";
 import BookingDetail from "@/components/BookingDetail";
-import PublicCalendar from "@/components/PublicCalendar";
+
 import PriceSettings from "@/components/PriceSettings";
 import RoleSelection from "@/components/RoleSelection";
 import GuestView from "@/components/GuestView";
@@ -16,6 +16,7 @@ import CancelledBookingsSheet from "@/components/CancelledBookingsSheet";
 import DateActionDialog from "@/components/DateActionDialog";
 import DatePriceEditor from "@/components/DatePriceEditor";
 import AuthPage from "@/components/AuthPage";
+import VisitorCounter from "@/components/VisitorCounter";
 import { useAuth } from "@/hooks/useAuth";
 import { useHouses } from "@/hooks/useHouses";
 import { useBookings, useCreateBooking, useUpdateBooking, useCancelBooking, useRestoreBooking, useDeleteBooking } from "@/hooks/useBookings";
@@ -65,7 +66,6 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
   const [filter, setFilter] = useState<HouseFilterType>("all");
   const [showForm, setShowForm] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
-  const [showPublic, setShowPublic] = useState(false);
   const [showPriceSettings, setShowPriceSettings] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [editBooking, setEditBooking] = useState<Booking | null>(null);
@@ -228,9 +228,6 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
 
   if (!user) return <AuthPage onBack={onBackToRoles} />;
 
-  if (showPublic) {
-    return <PublicCalendar bookings={bookings} houses={houses} onClose={() => setShowPublic(false)} />;
-  }
 
   if (showPriceSettings) {
     return <PriceSettings houses={houses} onClose={() => setShowPriceSettings(false)} />;
@@ -289,9 +286,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowPriceSettings(true)} title="Настройки цен">
             <Settings className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowPublic(true)} title="Публичный вид">
-            <Eye className="h-4 w-4" />
-          </Button>
+          <VisitorCounter />
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
             signOut();
             onBackToRoles();

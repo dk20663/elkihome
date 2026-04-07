@@ -57,6 +57,22 @@ export default function GuestView({ onBack }: Props) {
     load();
   }, []);
 
+  // Track visitor
+  useEffect(() => {
+    const trackVisit = async () => {
+      let visitorId = localStorage.getItem("elkihome_visitor_id");
+      if (!visitorId) {
+        visitorId = crypto.randomUUID();
+        localStorage.setItem("elkihome_visitor_id", visitorId);
+      }
+      await supabase.from("page_visits").upsert(
+        { visitor_id: visitorId, visited_at: new Date().toISOString().slice(0, 10) },
+        { onConflict: "visitor_id,visited_at" }
+      );
+    };
+    trackVisit();
+  }, []);
+
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
     setShowPrice(true);

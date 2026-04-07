@@ -95,18 +95,25 @@ export default function CalendarGrid({
       cellBg: string;
       greenBookingIds: Set<string>;
       blackBookingIds: Set<string>;
-      hasAvitoSync: boolean;
+      greenHasAvito: boolean;
+      blackHasAvito: boolean;
     }>();
     for (const day of days) {
       const allDayBookings = getBookingsForDate(day, bookings);
       const greenIds = new Set<string>();
       const blackIds = new Set<string>();
-      let hasAvito = false;
+      let greenAvito = false;
+      let blackAvito = false;
       for (const b of allDayBookings) {
         if (b.cancelled) continue;
-        if (greenHouse && b.house_id === greenHouse.id) greenIds.add(b.id);
-        if (blackHouse && b.house_id === blackHouse.id) blackIds.add(b.id);
-        if ((b as any).synced_from === "avito") hasAvito = true;
+        if (greenHouse && b.house_id === greenHouse.id) {
+          greenIds.add(b.id);
+          if (b.synced_from === "avito") greenAvito = true;
+        }
+        if (blackHouse && b.house_id === blackHouse.id) {
+          blackIds.add(b.id);
+          if (b.synced_from === "avito") blackAvito = true;
+        }
       }
       const gb = greenIds.size > 0;
       const bb = blackIds.size > 0;
@@ -116,7 +123,8 @@ export default function CalendarGrid({
         cellBg: getCellBg(gb, bb, filter),
         greenBookingIds: greenIds,
         blackBookingIds: blackIds,
-        hasAvitoSync: hasAvito,
+        greenHasAvito: greenAvito,
+        blackHasAvito: blackAvito,
       });
     }
     return map;
@@ -145,12 +153,12 @@ export default function CalendarGrid({
           const dayBookings = getBookingsForDate(day, filteredBookings);
           const dayKey = format(day, "yyyy-MM-dd");
           const status = dayStatusMap.get(dayKey)!;
-          const { greenBooked, blackBooked, cellBg, hasAvitoSync } = status;
+          const { greenBooked, blackBooked, cellBg, greenHasAvito, blackHasAvito } = status;
           const dayOfWeek = getDay(day);
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-          // In guest/public view, past dates are all gray
-          if (isPublicView && inMonth && isPast) {
+          // In guest/public view, past dates are all gray (no booking colors)
+          if (isPublicView && isPast) {
             return (
               <button
                 key={day.toISOString()}
@@ -250,8 +258,15 @@ export default function CalendarGrid({
                 isInRange && "bg-primary/10",
                 isRangeStart && "ring-2 ring-primary",
                 isRangeEnd && "ring-2 ring-primary",
-                cellBg,
-                !isPublicView && hasAvitoSync && cellBg && "avito-synced",
+                isPublicView && isPast ? "" : cellBg,
+                !isPublicView && cellBg && (
+                  (filter === "green" && greenHasAvito) ? "avito-synced-green" :
+                  (filter === "black" && blackHasAvito) ? "avito-synced-black" :
+                  (filter === "all" && greenHasAvito && blackHasAvito) ? "avito-synced" :
+                  (filter === "all" && greenHasAvito && !blackHasAvito) ? "avito-synced-green" :
+                  (filter === "all" && !greenHasAvito && blackHasAvito) ? "avito-synced-black" :
+                  ""
+                ),
                 // Today: inset outline
                 isCurrentDay && "calendar-today-outline"
               )}

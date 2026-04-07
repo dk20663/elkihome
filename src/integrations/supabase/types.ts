@@ -150,6 +150,27 @@ export type Database = {
         }
         Relationships: []
       }
+      page_visits: {
+        Row: {
+          created_at: string
+          id: string
+          visited_at: string
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          visited_at?: string
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          visited_at?: string
+          visitor_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       public_bookings_view: {
