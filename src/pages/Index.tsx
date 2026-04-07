@@ -228,9 +228,6 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
 
   if (!user) return <AuthPage onBack={onBackToRoles} />;
 
-  if (showPublic) {
-    return <PublicCalendar bookings={bookings} houses={houses} onClose={() => setShowPublic(false)} />;
-  }
 
   if (showPriceSettings) {
     return <PriceSettings houses={houses} onClose={() => setShowPriceSettings(false)} />;
