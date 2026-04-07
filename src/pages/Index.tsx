@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { format, addMonths, subMonths, parseISO, isSameDay, isAfter, isBefore } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Eye, LogOut, Settings, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, LogOut, Settings, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CalendarGrid from "@/components/CalendarGrid";
 import HouseFilter from "@/components/HouseFilter";
