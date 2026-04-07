@@ -157,8 +157,8 @@ export default function CalendarGrid({
           const dayOfWeek = getDay(day);
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-          // In guest/public view, past dates are all gray
-          if (isPublicView && inMonth && isPast) {
+          // In guest/public view, past dates are all gray (no booking colors)
+          if (isPublicView && isPast) {
             return (
               <button
                 key={day.toISOString()}
