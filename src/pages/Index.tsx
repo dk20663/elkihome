@@ -8,7 +8,7 @@ import HouseFilter from "@/components/HouseFilter";
 import MonthStats from "@/components/MonthStats";
 import BookingForm from "@/components/BookingForm";
 import BookingDetail from "@/components/BookingDetail";
-import PublicCalendar from "@/components/PublicCalendar";
+
 import PriceSettings from "@/components/PriceSettings";
 import RoleSelection from "@/components/RoleSelection";
 import GuestView from "@/components/GuestView";
