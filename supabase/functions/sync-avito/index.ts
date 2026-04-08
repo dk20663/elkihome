@@ -145,8 +145,9 @@ Deno.serve(async (req) => {
 
         if (existingUids.has(extUid)) {
           // If it exists but was cancelled, and it's back in the feed → restore it
+          // BUT skip if manually overridden by admin
           const existing = (existingSynced || []).find((e) => e.external_uid === extUid);
-          if (existing?.cancelled) {
+          if (existing?.cancelled && !existing?.manual_override) {
             await supabase.from("bookings").update({ cancelled: false }).eq("id", existing.id);
             totalSynced++;
           }
