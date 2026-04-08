@@ -141,6 +141,11 @@ Deno.serve(async (req) => {
       const manualList = manualBookings || [];
 
       for (const ev of events) {
+        // Skip events that originated from our own export-ical feed (feedback loop protection)
+        if (ev.uid.startsWith("elkihome-")) {
+          continue;
+        }
+
         const extUid = `avito_${houseName}_${ev.uid}`;
 
         if (existingUids.has(extUid)) {

@@ -36,12 +36,12 @@ Deno.serve(async (req) => {
     }
 
     // Get active bookings - exclude avito-synced to prevent feedback loop
+    // Export ALL active bookings (including avito-synced) so Avito sees our full availability
     const { data: bookings, error } = await supabase
       .from("bookings")
       .select("id, check_in, check_out")
       .eq("house_id", houses.id)
-      .eq("cancelled", false)
-      .is("synced_from", null);
+      .eq("cancelled", false);
 
     if (error) throw error;
 
