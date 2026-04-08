@@ -1,59 +1,66 @@
 
 
-## Plan
+## Plan: Полная двусторонняя синхронизация с Авито
 
-### 1. Fix cross-month booking strip breaks in CalendarGrid
+### Ответ на вопрос о времени синхронизации
+Автоматическая синхронизация запускается каждые 30 минут через pg_cron.
 
-**Problem:** The strip connectivity logic (line 178) is gated on `inMonth`, so out-of-month days shown at the edges of the calendar grid don't participate in strip rendering. A booking spanning March 29 - April 2 appears as disconnected chunks.
+### Проблема
+Когда вы отменяете бронь в нашем календаре, Авито не узнает об этом мгновенно. Авито забирает данные из нашего iCal-фида (`export-ical`) при своём следующем цикле опроса (частоту контролирует Авито — обычно раз в несколько часов). Однако текущая проблема в том, что даже после опроса дата на Авито не открывается, потому что наш фид не учитывает отменённые авито-брони правильно, и при следующей синхронизации `sync-avito` снова закрывает дату обратно.
 
-**Fix in `CalendarGrid.tsx`:**
-- Remove the `inMonth` gate from the strip connectivity logic — apply border-radius calculations to ALL days in the grid (including out-of-month days)
-- For out-of-month days that are part of a booking, apply the `cellBg` class but with reduced opacity (e.g., `opacity-40` instead of `opacity-20`) so they're visually connected but still distinguishable as not-current-month
-- The `disabled` and `pointer-events-none` behavior remains for out-of-month days
+### Корневая причина
+Цикл: вы отменяете → `manual_override=true` → но Авито всё ещё показывает дату закрытой → `sync-avito` видит её в фиде → пропускает из-за `manual_override` → но дата на Авито так и не открывается, потому что наш `export-ical` не сообщает Авито что дата свободна.
 
-### 2. Avito iCal Synchronization
+iCal — пассивный формат. Авито сам решает, когда опрашивать наш фид. Мы не можем "отправить" отмену — можем только убрать событие из фида, и ждать пока Авито его перечитает.
 
-**Yes, this is doable.** Avito uses standard iCal (.ics) format for calendar sync. The plan:
+### Решение
 
-#### 2a. Import from Avito (close dates in our calendar)
+#### 1. Изменить `export-ical` — включить авито-брони в экспорт
 
-- Create an edge function `sync-avito` that:
-  - Fetches the two Avito .ics URLs
-  - Parses iCal VEVENT entries to extract booked date ranges
-  - Upserts bookings into the `bookings` table with a new `source` value like `"avito_sync"` and a flag to distinguish auto-synced entries
-- Add a `synced_from` column (nullable text) to `bookings` table — when set to `"avito"`, indicates auto-synced booking
-- Schedule this edge function via pg_cron (e.g., every 30 minutes) to keep dates up to date
-- In guest view: synced bookings display identically to manual bookings (date closed)
-- In admin view: synced bookings show with a distinct color shade + label "Закрыто при синхронизации с Авито" in the date card
-- Admin can still cancel synced bookings ("отмена заезда"), and can edit all booking fields manually
+Сейчас фид исключает все `synced_from='avito'` записи. Это предотвращает feedback loop, но также мешает Авито видеть что даты заняты нашими ручными бронями.
 
-#### 2b. Export our calendar as .ics (for Avito to import)
+**Новая логика:** экспортировать ВСЕ активные (не отменённые) брони, включая авито-синхронизированные. Feedback loop не возникнет, потому что `sync-avito` уже проверяет `external_uid` и не дублирует.
 
-- Create an edge function `export-ical` that:
-  - Accepts a `house` query param (`green` or `black`)
-  - Queries active (non-cancelled) bookings for that house
-  - Returns a valid .ics file with VEVENT entries
-- Publish stable URLs like:
-  - `https://<project>.supabase.co/functions/v1/export-ical?house=green`
-  - `https://<project>.supabase.co/functions/v1/export-ical?house=black`
-- These URLs can be pasted into Avito's calendar import settings
+#### 2. Изменить `sync-avito` — не восстанавливать `manual_override` брони
 
-#### Database changes
+Текущая логика уже это делает (строка 150). Нужно убедиться что она работает корректно и для удалённых/отменённых записей.
 
-- Add column `synced_from` (text, nullable, default null) to `bookings` table
-- Add column `external_uid` (text, nullable) to avoid duplicate imports from the same iCal event
+#### 3. Правильная цепочка при отмене брони администратором
 
-#### Admin calendar display
+Когда админ отменяет авито-бронь:
+1. `cancelled=true, manual_override=true` (уже реализовано)
+2. `export-ical` перестаёт показывать эту дату как занятую (бронь отменена → не попадает в фид)
+3. Авито при следующем опросе видит что дата свободна → открывает у себя
+4. `sync-avito` видит что событие пропало из авито-фида → находит нашу cancelled+manual_override запись → не трогает её
 
-- In `CalendarGrid.tsx`: when a booking has `synced_from = 'avito'`, use a slightly different shade (e.g., lighter/hatched variant of the house color) so admin can visually distinguish auto-synced dates
-- In `BookingDetail.tsx` / `DateActionDialog.tsx`: show "Закрыто при синхронизации с Авито" badge, plus all editable fields as usual
+### Что нужно сделать
 
-#### Files to create/modify
-- **New:** `supabase/functions/sync-avito/index.ts` — import .ics from Avito
-- **New:** `supabase/functions/export-ical/index.ts` — export .ics for Avito
-- **Migration:** add `synced_from` and `external_uid` columns to `bookings`
-- **Modify:** `CalendarGrid.tsx` — cross-month fix + avito color distinction
-- **Modify:** `BookingDetail.tsx` / `DateActionDialog.tsx` — show avito sync label
-- **Modify:** `src/lib/types.ts` — add new fields to Booking type
-- **pg_cron:** schedule sync-avito every 30 minutes
+**Файл: `supabase/functions/export-ical/index.ts`**
+- Убрать фильтр `.is("synced_from", null)` — экспортировать все активные брони независимо от источника
+- Это ключевое изменение: Авито увидит в нашем фиде все закрытые даты и синхронизирует их
+
+**Файл: `supabase/functions/sync-avito/index.ts`**
+- Добавить защиту от feedback loop: при импорте проверять, не является ли событие из фида нашим собственным (по UID начинающемуся с `elkihome-`)
+- Это предотвратит ситуацию когда наша ручная бронь экспортируется → Авито включает в свой фид → мы импортируем дубль
+
+### Итоговая логика синхронизации
+
+```text
+Наш календарь (источник правды)
+        │
+        ├── export-ical: ВСЕ активные брони → .ics фид
+        │       ↓
+        │   Авито опрашивает фид → синхронизирует даты
+        │
+        ├── sync-avito (каждые 30 мин):
+        │   Авито фид → наш календарь
+        │   - Новое событие + нет пересечений → создать бронь
+        │   - Событие пропало + нет ручных правок → удалить
+        │   - Событие пропало + есть ручные правки → отменить
+        │   - Событие есть + cancelled + manual_override → НЕ трогать
+        │   - UID начинается с "elkihome-" → ПРОПУСТИТЬ (наше же)
+```
+
+### Важное ограничение
+Авито контролирует частоту опроса нашего фида. После отмены в нашем календаре дата откроется на Авито не мгновенно, а при следующем цикле опроса со стороны Авито (обычно несколько часов).
 
