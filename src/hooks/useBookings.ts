@@ -140,7 +140,7 @@ export function useRestoreBooking() {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("bookings")
-        .update({ cancelled: false })
+        .update({ cancelled: false, manual_override: false })
         .eq("id", id);
       if (error) throw error;
     },
