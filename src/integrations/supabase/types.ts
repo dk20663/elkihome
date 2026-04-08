@@ -31,6 +31,7 @@ export type Database = {
           guest_phone: string
           house_id: string
           id: string
+          manual_override: boolean
           plunge_pool: boolean
           sauna: boolean
           source: string
@@ -54,6 +55,7 @@ export type Database = {
           guest_phone?: string
           house_id: string
           id?: string
+          manual_override?: boolean
           plunge_pool?: boolean
           sauna?: boolean
           source?: string
@@ -77,6 +79,7 @@ export type Database = {
           guest_phone?: string
           house_id?: string
           id?: string
+          manual_override?: boolean
           plunge_pool?: boolean
           sauna?: boolean
           source?: string
