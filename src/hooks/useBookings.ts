@@ -112,9 +112,21 @@ export function useCancelBooking() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // Check if this is an avito-synced booking - if so, set manual_override to prevent re-sync
+      const { data: booking } = await supabase
+        .from("bookings")
+        .select("synced_from")
+        .eq("id", id)
+        .single();
+      
+      const updateData: any = { cancelled: true };
+      if (booking?.synced_from === "avito") {
+        updateData.manual_override = true;
+      }
+      
       const { error } = await supabase
         .from("bookings")
-        .update({ cancelled: true })
+        .update(updateData)
         .eq("id", id);
       if (error) throw error;
     },
@@ -128,7 +140,7 @@ export function useRestoreBooking() {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("bookings")
-        .update({ cancelled: false })
+        .update({ cancelled: false, manual_override: false })
         .eq("id", id);
       if (error) throw error;
     },
