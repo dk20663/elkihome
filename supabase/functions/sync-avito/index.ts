@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
       // Get all existing avito-synced bookings for this house (including cancelled)
       const { data: existingSynced } = await supabase
         .from("bookings")
-        .select("id, external_uid, cancelled, guest_name, guest_phone, comment, total_price, guest_count, sauna, plunge_pool, bath_brooms, fir_infusion, citrus_infusion")
+        .select("id, external_uid, cancelled, manual_override, guest_name, guest_phone, comment, total_price, guest_count, sauna, plunge_pool, bath_brooms, fir_infusion, citrus_infusion")
         .eq("house_id", houseId)
         .eq("synced_from", "avito")
         .not("external_uid", "is", null);
