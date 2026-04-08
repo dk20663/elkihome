@@ -33,9 +33,21 @@ function parseICS(icsText: string): Array<{ uid: string; dtstart: string; dtend:
   return events;
 }
 
-// Check if date ranges overlap
 function datesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
   return aStart < bEnd && bStart < aEnd;
+}
+
+// Check if an avito-synced booking has been manually edited
+function hasManualEdits(b: any): boolean {
+  if (b.guest_phone && b.guest_phone.trim() !== "") return true;
+  if (b.comment && b.comment.trim() !== "") return true;
+  if (b.total_price && Number(b.total_price) !== 0) return true;
+  if (b.guest_count && b.guest_count > 1) return true;
+  if (b.sauna || b.plunge_pool || b.bath_brooms || b.fir_infusion || b.citrus_infusion) return true;
+  // If guest_name was changed from default avito values
+  const defaultNames = ["авито", "avito", "avito (closed)", "avito (booked)", ""];
+  if (b.guest_name && !defaultNames.includes(b.guest_name.toLowerCase().trim())) return true;
+  return false;
 }
 
 Deno.serve(async (req) => {
@@ -48,7 +60,6 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get houses
     const { data: houses, error: hErr } = await supabase.from("houses").select("id, name");
     if (hErr) throw hErr;
 
@@ -59,6 +70,8 @@ Deno.serve(async (req) => {
 
     let totalSynced = 0;
     let totalSkipped = 0;
+    let totalRemoved = 0;
+    let totalCancelled = 0;
 
     for (const [houseName, feedUrl] of Object.entries(AVITO_FEEDS)) {
       const houseId = houseMap[houseName];
@@ -79,17 +92,45 @@ Deno.serve(async (req) => {
 
       const events = parseICS(icsText);
 
-      // Get existing avito-synced external_uids for this house
+      // Build set of current Avito UIDs from the feed
+      const feedUids = new Set(events.map((ev) => `avito_${houseName}_${ev.uid}`));
+
+      // Get all existing avito-synced bookings for this house (including cancelled)
       const { data: existingSynced } = await supabase
         .from("bookings")
-        .select("external_uid")
+        .select("id, external_uid, cancelled, guest_name, guest_phone, comment, total_price, guest_count, sauna, plunge_pool, bath_brooms, fir_infusion, citrus_infusion")
         .eq("house_id", houseId)
         .eq("synced_from", "avito")
         .not("external_uid", "is", null);
 
       const existingUids = new Set((existingSynced || []).map((e) => e.external_uid));
 
-      // Get ALL manual (non-avito) active bookings for this house to check for overlaps
+      // --- Remove/cancel bookings that disappeared from Avito feed ---
+      for (const booking of existingSynced || []) {
+        if (booking.cancelled) continue; // already cancelled, skip
+        if (feedUids.has(booking.external_uid)) continue; // still in feed, keep
+
+        // This booking was removed from Avito feed
+        if (hasManualEdits(booking)) {
+          // Has manual data → cancel instead of delete
+          const { error } = await supabase
+            .from("bookings")
+            .update({ cancelled: true })
+            .eq("id", booking.id);
+          if (!error) totalCancelled++;
+          else console.error(`Cancel error for ${booking.external_uid}:`, error.message);
+        } else {
+          // No manual edits → delete
+          const { error } = await supabase
+            .from("bookings")
+            .delete()
+            .eq("id", booking.id);
+          if (!error) totalRemoved++;
+          else console.error(`Delete error for ${booking.external_uid}:`, error.message);
+        }
+      }
+
+      // --- Import new events from feed ---
       const { data: manualBookings } = await supabase
         .from("bookings")
         .select("check_in, check_out")
@@ -103,10 +144,15 @@ Deno.serve(async (req) => {
         const extUid = `avito_${houseName}_${ev.uid}`;
 
         if (existingUids.has(extUid)) {
+          // If it exists but was cancelled, and it's back in the feed → restore it
+          const existing = (existingSynced || []).find((e) => e.external_uid === extUid);
+          if (existing?.cancelled) {
+            await supabase.from("bookings").update({ cancelled: false }).eq("id", existing.id);
+            totalSynced++;
+          }
           continue;
         }
 
-        // Skip if a manual booking already covers this date range
         const hasManualOverlap = manualList.some((mb) =>
           datesOverlap(ev.dtstart, ev.dtend, mb.check_in, mb.check_out)
         );
@@ -137,7 +183,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, synced: totalSynced, skipped: totalSkipped }), {
+    return new Response(JSON.stringify({ ok: true, synced: totalSynced, skipped: totalSkipped, removed: totalRemoved, cancelled: totalCancelled }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
