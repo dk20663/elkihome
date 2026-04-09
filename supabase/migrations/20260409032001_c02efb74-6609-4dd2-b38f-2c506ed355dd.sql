@@ -1,0 +1,1 @@
+ALTER TABLE public.page_visits ADD CONSTRAINT page_visits_visitor_date_unique UNIQUE (visitor_id, visited_at);
