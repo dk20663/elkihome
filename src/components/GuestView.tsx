@@ -65,10 +65,14 @@ export default function GuestView({ onBack }: Props) {
         visitorId = crypto.randomUUID();
         localStorage.setItem("elkihome_visitor_id", visitorId);
       }
-      await supabase.from("page_visits").upsert(
+      const { error } = await supabase.from("page_visits").upsert(
         { visitor_id: visitorId, visited_at: new Date().toISOString().slice(0, 10) },
-        { onConflict: "visitor_id,visited_at" }
+        { onConflict: "visitor_id,visited_at", ignoreDuplicates: true }
       );
+
+      if (error) {
+        console.error("Visit tracking failed:", error.message);
+      }
     };
     trackVisit();
   }, []);
