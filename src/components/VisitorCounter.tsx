@@ -9,6 +9,38 @@ import {
 } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 
+const PAGE_SIZE = 1000;
+
+function getLocalDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+async function loadAllVisits() {
+  const visits: Array<{ visitor_id: string; visited_at: string }> = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("page_visits")
+      .select("visitor_id, visited_at")
+      .order("visited_at", { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) throw error;
+
+    const batch = data ?? [];
+    visits.push(...batch);
+
+    if (batch.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return visits;
+}
+
 export default function VisitorCounter() {
   const [open, setOpen] = useState(false);
   const [stats, setStats] = useState<{
@@ -23,22 +55,41 @@ export default function VisitorCounter() {
     setLoading(true);
     try {
       const now = new Date();
-      const todayStr = now.toISOString().slice(0, 10);
-      const weekAgo = new Date(now.getTime() - 7 * 86400000).toISOString().slice(0, 10);
-      const monthAgo = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+      const todayStr = getLocalDateKey(now);
+      const weekAgoDate = new Date(now);
+      weekAgoDate.setDate(weekAgoDate.getDate() - 6);
+      const monthAgoDate = new Date(now);
+      monthAgoDate.setDate(monthAgoDate.getDate() - 29);
+      const weekAgo = getLocalDateKey(weekAgoDate);
+      const monthAgo = getLocalDateKey(monthAgoDate);
 
-      const [todayRes, weekRes, monthRes, totalRes] = await Promise.all([
-        supabase.from("page_visits").select("visitor_id", { count: "exact", head: true }).eq("visited_at", todayStr),
-        supabase.from("page_visits").select("visitor_id", { count: "exact", head: true }).gte("visited_at", weekAgo),
-        supabase.from("page_visits").select("visitor_id", { count: "exact", head: true }).gte("visited_at", monthAgo),
-        supabase.from("page_visits").select("visitor_id", { count: "exact", head: true }),
-      ]);
+      const visits = await loadAllVisits();
+      const todayVisitors = new Set<string>();
+      const weekVisitors = new Set<string>();
+      const monthVisitors = new Set<string>();
+      const totalVisitors = new Set<string>();
+
+      for (const visit of visits) {
+        totalVisitors.add(visit.visitor_id);
+
+        if (visit.visited_at === todayStr) {
+          todayVisitors.add(visit.visitor_id);
+        }
+
+        if (visit.visited_at >= weekAgo) {
+          weekVisitors.add(visit.visitor_id);
+        }
+
+        if (visit.visited_at >= monthAgo) {
+          monthVisitors.add(visit.visitor_id);
+        }
+      }
 
       setStats({
-        today: todayRes.count ?? 0,
-        week: weekRes.count ?? 0,
-        month: monthRes.count ?? 0,
-        total: totalRes.count ?? 0,
+        today: todayVisitors.size,
+        week: weekVisitors.size,
+        month: monthVisitors.size,
+        total: totalVisitors.size,
       });
     } catch {
       // ignore
