@@ -65,12 +65,14 @@ export default function GuestView({ onBack }: Props) {
         visitorId = crypto.randomUUID();
         localStorage.setItem("elkihome_visitor_id", visitorId);
       }
-      const { error } = await supabase.from("page_visits").upsert(
-        { visitor_id: visitorId, visited_at: new Date().toISOString().slice(0, 10) },
-        { onConflict: "visitor_id,visited_at", ignoreDuplicates: true }
-      );
+      // Use plain INSERT - anon users can insert but not select/update
+      // Duplicate visits on same day will be rejected by unique constraint, which is fine
+      const { error } = await supabase.from("page_visits").insert({
+        visitor_id: visitorId,
+        visited_at: new Date().toISOString().slice(0, 10),
+      });
 
-      if (error) {
+      if (error && !error.message.includes("duplicate") && !error.message.includes("unique")) {
         console.error("Visit tracking failed:", error.message);
       }
     };

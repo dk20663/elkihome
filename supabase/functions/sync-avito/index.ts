@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
       // Get all existing avito-synced bookings for this house (including cancelled)
       const { data: existingSynced } = await supabase
         .from("bookings")
-        .select("id, external_uid, cancelled, manual_override, guest_name, guest_phone, comment, total_price, guest_count, sauna, plunge_pool, bath_brooms, fir_infusion, citrus_infusion")
+        .select("id, check_in, check_out, external_uid, cancelled, manual_override, guest_name, guest_phone, comment, total_price, guest_count, sauna, plunge_pool, bath_brooms, fir_infusion, citrus_infusion")
         .eq("house_id", houseId)
         .eq("synced_from", "avito")
         .not("external_uid", "is", null);
@@ -131,14 +131,19 @@ Deno.serve(async (req) => {
       }
 
       // --- Import new events from feed ---
-      const { data: manualBookings } = await supabase
+      // Get ALL active bookings for this house to check overlaps (prevents feedback loop)
+      const { data: allActiveBookings } = await supabase
         .from("bookings")
         .select("check_in, check_out")
         .eq("house_id", houseId)
-        .eq("cancelled", false)
-        .is("synced_from", null);
+        .eq("cancelled", false);
 
-      const manualList = manualBookings || [];
+      const activeList = allActiveBookings || [];
+
+      // Get admin-cancelled bookings to prevent re-importing dates admin explicitly freed
+      const cancelledOverrides = (existingSynced || []).filter(
+        (b) => b.cancelled && b.manual_override
+      );
 
       for (const ev of events) {
         // Skip events that originated from our own export-ical feed (feedback loop protection)
@@ -159,14 +164,27 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const hasManualOverlap = manualList.some((mb) =>
-          datesOverlap(ev.dtstart, ev.dtend, mb.check_in, mb.check_out)
+        // Check overlap with ALL active bookings (manual + avito) to prevent feedback loop
+        // When our iCal export is imported by Avito, it re-exports with new UIDs
+        const hasOverlap = activeList.some((ab) =>
+          datesOverlap(ev.dtstart, ev.dtend, ab.check_in, ab.check_out)
         );
 
-        if (hasManualOverlap) {
+        if (hasOverlap) {
           totalSkipped++;
           continue;
         }
+
+        // Skip if admin explicitly cancelled/freed these dates (manual_override)
+        const adminFreed = cancelledOverrides.some((b) =>
+          datesOverlap(ev.dtstart, ev.dtend, b.check_in, b.check_out)
+        );
+
+        if (adminFreed) {
+          totalSkipped++;
+          continue;
+        }
+
 
         const { error: insertErr } = await supabase.from("bookings").insert({
           house_id: houseId,
