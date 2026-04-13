@@ -9,6 +9,16 @@ import GuestPriceDetail from "./GuestPriceDetail";
 import { supabase } from "@/integrations/supabase/client";
 import type { House, HouseFilter as HouseFilterType, Booking, HousePricing } from "@/lib/types";
 
+const VISITOR_ID_KEY = "elkihome_visitor_id";
+const LAST_VISIT_DATE_KEY = "elkihome_last_visit_date";
+
+function getLocalDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 interface Props {
   onBack: () => void;
 }
@@ -60,19 +70,37 @@ export default function GuestView({ onBack }: Props) {
   // Track visitor
   useEffect(() => {
     const trackVisit = async () => {
-      let visitorId = localStorage.getItem("elkihome_visitor_id");
+      const today = getLocalDateKey(new Date());
+      const lastTrackedDate = localStorage.getItem(LAST_VISIT_DATE_KEY);
+
+      if (lastTrackedDate === today) {
+        return;
+      }
+
+      let visitorId = localStorage.getItem(VISITOR_ID_KEY);
       if (!visitorId) {
         visitorId = crypto.randomUUID();
-        localStorage.setItem("elkihome_visitor_id", visitorId);
+        localStorage.setItem(VISITOR_ID_KEY, visitorId);
       }
-      // Use plain INSERT - anon users can insert but not select/update
-      // Duplicate visits on same day will be rejected by unique constraint, which is fine
+
       const { error } = await supabase.from("page_visits").insert({
         visitor_id: visitorId,
-        visited_at: new Date().toISOString().slice(0, 10),
+        visited_at: today,
       });
 
-      if (error && !error.message.includes("duplicate") && !error.message.includes("unique")) {
+      if (!error) {
+        localStorage.setItem(LAST_VISIT_DATE_KEY, today);
+        return;
+      }
+
+      const isDuplicate = error.code === "23505" || error.message.includes("duplicate") || error.message.includes("unique");
+
+      if (isDuplicate) {
+        localStorage.setItem(LAST_VISIT_DATE_KEY, today);
+        return;
+      }
+
+      if (!isDuplicate) {
         console.error("Visit tracking failed:", error.message);
       }
     };
