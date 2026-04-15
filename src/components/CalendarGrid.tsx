@@ -273,7 +273,7 @@ export default function CalendarGrid({
             >
               <span
                 className={cn(
-                  "font-semibold leading-none lg:text-lg",
+                  "font-semibold leading-none lg:text-lg relative z-10",
                   isCurrentDay && !cellBg && "text-primary",
                   (greenBooked && blackBooked) && "text-primary-foreground",
                   (filter === "green" && greenBooked) && "text-primary-foreground",
@@ -286,7 +286,7 @@ export default function CalendarGrid({
               </span>
               {/* Red stripe for cancelled bookings — admin only */}
               {inMonth && hasCancelled && (
-                <span className="absolute bottom-0.5 left-1 right-1 h-[2px] rounded-full bg-destructive" />
+                <span className="absolute bottom-0.5 left-1 right-1 h-[2px] rounded-full bg-destructive z-10" />
               )}
             </button>
           );

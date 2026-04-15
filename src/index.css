@@ -181,14 +181,9 @@
       hsl(var(--house-black) / 0.6) 8px
     );
   }
-  /* Both houses: avito on green half only */
+  /* Both houses: avito on green half only — green stripes left, solid black right */
   .avito-synced-green.calendar-cell-both {
-    background: linear-gradient(
-      135deg,
-      transparent 50%,
-      hsl(var(--house-black)) 50%
-    ),
-    repeating-linear-gradient(
+    background: repeating-linear-gradient(
       45deg,
       hsl(var(--house-green)),
       hsl(var(--house-green)) 4px,
@@ -196,29 +191,38 @@
       hsl(var(--house-green) / 0.6) 8px
     );
   }
-  /* Both houses: avito on black half only */
+  .avito-synced-green.calendar-cell-both::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: hsl(var(--house-black));
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  /* Both houses: avito on black half only — solid green left, black stripes right */
   .avito-synced-black.calendar-cell-both {
-    background: linear-gradient(
-      135deg,
-      hsl(var(--house-green)) 50%,
-      transparent 50%
-    ),
-    repeating-linear-gradient(
+    background: hsl(var(--house-green));
+  }
+  .avito-synced-black.calendar-cell-both::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
       45deg,
       hsl(var(--house-black)),
       hsl(var(--house-black)) 4px,
       hsl(var(--house-black) / 0.6) 4px,
       hsl(var(--house-black) / 0.6) 8px
     );
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    border-radius: inherit;
+    pointer-events: none;
   }
-  /* Both houses: avito on both */
+  /* Both houses: avito on both — green stripes on left half */
   .avito-synced.calendar-cell-both {
-    background: 
-      linear-gradient(
-        135deg,
-        transparent 50%,
-        transparent 50%
-      ),
+    background:
+      linear-gradient(135deg, transparent 50%, transparent 50%),
       repeating-linear-gradient(
         45deg,
         hsl(var(--house-green)),
@@ -226,6 +230,22 @@
         hsl(var(--house-green) / 0.6) 4px,
         hsl(var(--house-green) / 0.6) 8px
       );
+  }
+  /* Black striped half via pseudo-element */
+  .avito-synced.calendar-cell-both::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      hsl(var(--house-black)),
+      hsl(var(--house-black)) 4px,
+      hsl(var(--house-black) / 0.6) 4px,
+      hsl(var(--house-black) / 0.6) 8px
+    );
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    border-radius: inherit;
+    pointer-events: none;
   }
   /* Green-only cell with avito on green */
   .avito-synced-green.calendar-cell-green-only {
