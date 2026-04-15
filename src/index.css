@@ -211,10 +211,10 @@
       hsl(var(--house-black) / 0.6) 8px
     );
   }
-  /* Both houses: avito on both — split striped green (top-left) and striped black (bottom-right) */
+  /* Both houses: avito on both — green stripes on left half */
   .avito-synced.calendar-cell-both {
     background:
-      linear-gradient(135deg, transparent 50%, hsl(var(--house-black)) 50%),
+      linear-gradient(135deg, transparent 50%, transparent 50%),
       repeating-linear-gradient(
         45deg,
         hsl(var(--house-green)),
@@ -223,7 +223,22 @@
         hsl(var(--house-green) / 0.6) 8px
       );
   }
-  /* Both houses: avito on both — add black stripes on the black half via pseudo-element */
+  /* Black striped half via pseudo-element */
+  .avito-synced.calendar-cell-both::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      hsl(var(--house-black)),
+      hsl(var(--house-black)) 4px,
+      hsl(var(--house-black) / 0.6) 4px,
+      hsl(var(--house-black) / 0.6) 8px
+    );
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    border-radius: inherit;
+    pointer-events: none;
+  }
   /* Green-only cell with avito on green */
   .avito-synced-green.calendar-cell-green-only {
     background: linear-gradient(
