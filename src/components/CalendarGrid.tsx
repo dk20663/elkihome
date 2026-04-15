@@ -273,7 +273,7 @@ export default function CalendarGrid({
             >
               <span
                 className={cn(
-                  "font-semibold leading-none lg:text-lg",
+                  "font-semibold leading-none lg:text-lg relative z-10",
                   isCurrentDay && !cellBg && "text-primary",
                   (greenBooked && blackBooked) && "text-primary-foreground",
                   (filter === "green" && greenBooked) && "text-primary-foreground",
