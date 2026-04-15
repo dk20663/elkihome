@@ -286,7 +286,7 @@ export default function CalendarGrid({
               </span>
               {/* Red stripe for cancelled bookings — admin only */}
               {inMonth && hasCancelled && (
-                <span className="absolute bottom-0.5 left-1 right-1 h-[2px] rounded-full bg-destructive" />
+                <span className="absolute bottom-0.5 left-1 right-1 h-[2px] rounded-full bg-destructive z-10" />
               )}
             </button>
           );
