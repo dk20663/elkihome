@@ -7,7 +7,12 @@ import CalendarGrid from "./CalendarGrid";
 import HouseFilter from "./HouseFilter";
 import GuestPriceDetail from "./GuestPriceDetail";
 import { supabase } from "@/integrations/supabase/client";
+import { readCache, writeCache } from "@/lib/persistCache";
 import type { House, HouseFilter as HouseFilterType, Booking, HousePricing } from "@/lib/types";
+
+const GUEST_HOUSES_KEY = "guest_houses";
+const GUEST_BOOKINGS_KEY = "guest_bookings";
+const GUEST_PRICING_KEY = "guest_pricing";
 
 const VISITOR_ID_KEY = "elkihome_visitor_id";
 const LAST_VISIT_DATE_KEY = "elkihome_last_visit_date";
@@ -26,45 +31,48 @@ interface Props {
 export default function GuestView({ onBack }: Props) {
   const [month, setMonth] = useState(new Date());
   const [filter, setFilter] = useState<HouseFilterType>("all");
-  const [houses, setHouses] = useState<House[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [pricing, setPricing] = useState<HousePricing[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [houses, setHouses] = useState<House[]>(() => readCache<House[]>(GUEST_HOUSES_KEY) ?? []);
+  const [bookings, setBookings] = useState<Booking[]>(() => readCache<Booking[]>(GUEST_BOOKINGS_KEY) ?? []);
+  const [pricing, setPricing] = useState<HousePricing[]>(() => readCache<HousePricing[]>(GUEST_PRICING_KEY) ?? []);
+  const [loading, setLoading] = useState(() => (readCache<Booking[]>(GUEST_BOOKINGS_KEY)?.length ?? 0) === 0);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showPrice, setShowPrice] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    // Load houses first (small, fast) — calendar renders immediately
     supabase.from("houses").select("*").then(({ data }) => {
-      if (!cancelled && data) setHouses(data as House[]);
+      if (cancelled || !data) return;
+      setHouses(data as House[]);
+      writeCache(GUEST_HOUSES_KEY, data);
     });
-    // Load bookings + pricing in parallel, non-blocking
     Promise.all([
       supabase.from("public_bookings_view").select("*"),
       supabase.from("house_pricing").select("*"),
     ]).then(([bookingsRes, pricingRes]) => {
       if (cancelled) return;
-      if (pricingRes.data) setPricing(pricingRes.data as HousePricing[]);
+      if (pricingRes.data) {
+        setPricing(pricingRes.data as HousePricing[]);
+        writeCache(GUEST_PRICING_KEY, pricingRes.data);
+      }
       if (bookingsRes.data) {
-        setBookings(
-          bookingsRes.data.map((b: any) => ({
-            ...b,
-            guest_name: "",
-            guest_phone: "",
-            comment: "",
-            source: "",
-            guest_count: 0,
-            sauna: false,
-            plunge_pool: false,
-            bath_brooms: false,
-            fir_infusion: false,
-            citrus_infusion: false,
-            created_by: null,
-            created_at: "",
-            updated_at: "",
-          })) as Booking[]
-        );
+        const mapped = bookingsRes.data.map((b: any) => ({
+          ...b,
+          guest_name: "",
+          guest_phone: "",
+          comment: "",
+          source: "",
+          guest_count: 0,
+          sauna: false,
+          plunge_pool: false,
+          bath_brooms: false,
+          fir_infusion: false,
+          citrus_infusion: false,
+          created_by: null,
+          created_at: "",
+          updated_at: "",
+        })) as Booking[];
+        setBookings(mapped);
+        writeCache(GUEST_BOOKINGS_KEY, mapped);
       }
       setLoading(false);
     });
