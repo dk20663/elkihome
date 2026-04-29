@@ -313,20 +313,17 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
       </div>
 
       <div className="px-4 mb-3">
-        {isLoading ? (
-          <Skeleton className="h-64 rounded-2xl" />
-        ) : (
-          <div className="bg-card rounded-2xl p-3 shadow-sm border border-border/50">
-            <CalendarGrid
-              month={month}
-              bookings={bookings}
-              houses={houses}
-              filter={filter}
-              onDateClick={handleDateClick}
-              selectedRange={selectedRange}
-            />
-          </div>
-        )}
+        <div className="bg-card rounded-2xl p-3 shadow-sm border border-border/50">
+          <CalendarGrid
+            month={month}
+            bookings={bookings}
+            houses={houses}
+            filter={filter}
+            onDateClick={handleDateClick}
+            selectedRange={selectedRange}
+            bookingsLoading={isLoading}
+          />
+        </div>
       </div>
 
       <div className="flex gap-3 justify-center mb-3 text-[10px] text-muted-foreground">
