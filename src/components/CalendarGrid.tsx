@@ -28,6 +28,7 @@ interface Props {
   onDateClick: (date: Date) => void;
   selectedRange: { start: Date | null; end: Date | null };
   isPublicView?: boolean;
+  bookingsLoading?: boolean;
 }
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
