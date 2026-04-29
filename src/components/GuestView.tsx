@@ -34,13 +34,17 @@ export default function GuestView({ onBack }: Props) {
   const [showPrice, setShowPrice] = useState(false);
 
   useEffect(() => {
-    async function load() {
-      const [housesRes, bookingsRes, pricingRes] = await Promise.all([
-        supabase.from("houses").select("*"),
-        supabase.from("public_bookings_view").select("*"),
-        supabase.from("house_pricing").select("*"),
-      ]);
-      if (housesRes.data) setHouses(housesRes.data as House[]);
+    let cancelled = false;
+    // Load houses first (small, fast) — calendar renders immediately
+    supabase.from("houses").select("*").then(({ data }) => {
+      if (!cancelled && data) setHouses(data as House[]);
+    });
+    // Load bookings + pricing in parallel, non-blocking
+    Promise.all([
+      supabase.from("public_bookings_view").select("*"),
+      supabase.from("house_pricing").select("*"),
+    ]).then(([bookingsRes, pricingRes]) => {
+      if (cancelled) return;
       if (pricingRes.data) setPricing(pricingRes.data as HousePricing[]);
       if (bookingsRes.data) {
         setBookings(
@@ -63,8 +67,8 @@ export default function GuestView({ onBack }: Props) {
         );
       }
       setLoading(false);
-    }
-    load();
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // Track visitor
