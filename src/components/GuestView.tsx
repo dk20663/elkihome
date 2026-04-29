@@ -116,14 +116,6 @@ export default function GuestView({ onBack }: Props) {
     setShowPrice(true);
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Загрузка...</div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background p-4 flex flex-col lg:max-w-5xl max-w-md mx-auto">
       <div className="flex items-center gap-2 mb-4">
