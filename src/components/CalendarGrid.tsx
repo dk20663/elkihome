@@ -264,6 +264,7 @@ export default function CalendarGrid({
                 isRangeStart && "ring-2 ring-primary",
                 isRangeEnd && "ring-2 ring-primary",
                 isPublicView && isPast ? "" : cellBg,
+                cellBg && "calendar-fade-in",
                 !isPublicView && cellBg && (
                   (filter === "green" && greenHasAvito) ? "avito-synced-green" :
                   (filter === "black" && blackHasAvito) ? "avito-synced-black" :
