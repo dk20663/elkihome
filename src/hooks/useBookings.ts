@@ -2,9 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Booking, BookingFormData } from "@/lib/types";
 import { useEffect, useState } from "react";
-import { readCache, writeCache } from "@/lib/persistCache";
-
-const BOOKINGS_CACHE_KEY = "bookings_admin";
 
 export function useBookings() {
   const queryClient = useQueryClient();
@@ -41,14 +38,11 @@ export function useBookings() {
         .select("*, houses(*)")
         .order("check_in");
       if (error) throw error;
-      const bookings = data as Booking[];
-      writeCache(BOOKINGS_CACHE_KEY, bookings);
-      return bookings;
+      return data as Booking[];
     },
     enabled: authReady,
-    initialData: () => readCache<Booking[]>(BOOKINGS_CACHE_KEY) ?? undefined,
     refetchOnMount: true,
-    staleTime: 30_000,
+    staleTime: 0,
   });
 
   useEffect(() => {
