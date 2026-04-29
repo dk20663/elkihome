@@ -134,6 +134,9 @@ export default function CalendarGrid({
 
   return (
     <div>
+      {bookingsLoading && (
+        <div className="calendar-loading-bar mb-2" aria-label="Загрузка занятых дат" />
+      )}
       <div className="grid grid-cols-7 mb-1">
         {WEEKDAYS.map((d, i) => (
           <div
