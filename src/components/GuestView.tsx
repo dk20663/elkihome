@@ -155,6 +155,7 @@ export default function GuestView({ onBack }: Props) {
           onDateClick={handleDateClick}
           selectedRange={{ start: null, end: null }}
           isPublicView
+          bookingsLoading={loading}
         />
       </div>
 
