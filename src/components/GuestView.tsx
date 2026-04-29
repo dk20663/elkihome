@@ -7,12 +7,7 @@ import CalendarGrid from "./CalendarGrid";
 import HouseFilter from "./HouseFilter";
 import GuestPriceDetail from "./GuestPriceDetail";
 import { supabase } from "@/integrations/supabase/client";
-import { readCache, writeCache } from "@/lib/persistCache";
 import type { House, HouseFilter as HouseFilterType, Booking, HousePricing } from "@/lib/types";
-
-const GUEST_HOUSES_KEY = "guest_houses";
-const GUEST_BOOKINGS_KEY = "guest_bookings";
-const GUEST_PRICING_KEY = "guest_pricing";
 
 const VISITOR_ID_KEY = "elkihome_visitor_id";
 const LAST_VISIT_DATE_KEY = "elkihome_last_visit_date";
