@@ -294,6 +294,10 @@
     height: 2px;
     border-radius: 2px;
   }
+  .calendar-cell-refreshing {
+    opacity: 0.85;
+    transition: opacity 250ms ease;
+  }
   .calendar-loading-bar::after {
     content: '';
     position: absolute;

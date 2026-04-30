@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateOccupancy } from "@/lib/occupancyCache";
 import type { Booking, BookingFormData } from "@/lib/types";
 import { useEffect, useState } from "react";
 
@@ -52,6 +53,8 @@ export function useBookings() {
         "postgres_changes",
         { event: "*", schema: "public", table: "bookings" },
         () => {
+          // Invalidate guest occupancy cache so the next guest visit refetches fresh data
+          invalidateOccupancy();
           queryClient.invalidateQueries({ queryKey: ["bookings"] });
         }
       )

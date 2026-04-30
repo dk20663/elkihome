@@ -29,6 +29,7 @@ interface Props {
   selectedRange: { start: Date | null; end: Date | null };
   isPublicView?: boolean;
   bookingsLoading?: boolean;
+  isRefreshing?: boolean;
 }
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -70,6 +71,7 @@ export default function CalendarGrid({
   selectedRange,
   isPublicView = false,
   bookingsLoading = false,
+  isRefreshing = false,
 }: Props) {
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
@@ -265,6 +267,7 @@ export default function CalendarGrid({
                 isRangeEnd && "ring-2 ring-primary",
                 isPublicView && isPast ? "" : cellBg,
                 cellBg && "calendar-fade-in",
+                cellBg && isRefreshing && "calendar-cell-refreshing",
                 !isPublicView && cellBg && (
                   (filter === "green" && greenHasAvito) ? "avito-synced-green" :
                   (filter === "black" && blackHasAvito) ? "avito-synced-black" :
