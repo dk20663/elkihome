@@ -29,6 +29,7 @@ interface Props {
   selectedRange: { start: Date | null; end: Date | null };
   isPublicView?: boolean;
   bookingsLoading?: boolean;
+  isRefreshing?: boolean;
 }
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
