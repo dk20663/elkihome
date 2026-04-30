@@ -50,10 +50,10 @@ export default function GuestView({ onBack }: Props) {
     return () => { cancelled = true; };
   }, []);
 
-  // Wait for prefetched occupancy (fresh data)
+  // Wait for prefetched occupancy (fresh data) — start prefetch if not yet running
   useEffect(() => {
     let cancelled = false;
-    occupancyPromise.then((fresh) => {
+    startOccupancyPrefetch().then((fresh) => {
       if (cancelled) return;
       if (fresh && fresh.length >= 0) {
         setBookings(fresh);
