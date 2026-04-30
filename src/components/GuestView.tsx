@@ -8,7 +8,7 @@ import HouseFilter from "./HouseFilter";
 import GuestPriceDetail from "./GuestPriceDetail";
 import { supabase } from "@/integrations/supabase/client";
 import { readOccupancy, writeOccupancy } from "@/lib/occupancyCache";
-import { occupancyPromise } from "@/lib/prefetch";
+import { startOccupancyPrefetch } from "@/lib/prefetch";
 import type { House, HouseFilter as HouseFilterType, Booking, HousePricing } from "@/lib/types";
 
 const VISITOR_ID_KEY = "elkihome_visitor_id";
