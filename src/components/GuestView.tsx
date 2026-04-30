@@ -8,7 +8,7 @@ import HouseFilter from "./HouseFilter";
 import GuestPriceDetail from "./GuestPriceDetail";
 import { supabase } from "@/integrations/supabase/client";
 import { readOccupancy, writeOccupancy } from "@/lib/occupancyCache";
-import { occupancyPromise } from "@/lib/prefetch";
+import { startOccupancyPrefetch } from "@/lib/prefetch";
 import type { House, HouseFilter as HouseFilterType, Booking, HousePricing } from "@/lib/types";
 
 const VISITOR_ID_KEY = "elkihome_visitor_id";
@@ -50,10 +50,10 @@ export default function GuestView({ onBack }: Props) {
     return () => { cancelled = true; };
   }, []);
 
-  // Wait for prefetched occupancy (fresh data)
+  // Wait for prefetched occupancy (fresh data) — start prefetch if not yet running
   useEffect(() => {
     let cancelled = false;
-    occupancyPromise.then((fresh) => {
+    startOccupancyPrefetch().then((fresh) => {
       if (cancelled) return;
       if (fresh && fresh.length >= 0) {
         setBookings(fresh);

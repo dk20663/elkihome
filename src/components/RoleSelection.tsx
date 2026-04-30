@@ -1,5 +1,6 @@
 import { Home, Users, Settings } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { startOccupancyPrefetch } from "@/lib/prefetch";
 
 interface Props {
   onSelectRole: (role: "guest" | "admin") => void;
@@ -16,6 +17,8 @@ export default function RoleSelection({ onSelectRole }: Props) {
         <div className="space-y-3">
           <Card
             className="cursor-pointer hover:shadow-lg transition-shadow border-2 border-primary/30 hover:border-primary"
+            onPointerDown={() => startOccupancyPrefetch()}
+            onMouseEnter={() => startOccupancyPrefetch()}
             onClick={() => onSelectRole("guest")}
           >
             <CardContent className="flex flex-col items-center py-8 gap-3">
