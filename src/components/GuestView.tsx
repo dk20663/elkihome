@@ -1,12 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
-import { format, addMonths, subMonths, parseISO } from "date-fns";
+import { useState, useEffect } from "react";
+import { format, addMonths, subMonths } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CalendarGrid from "./CalendarGrid";
 import HouseFilter from "./HouseFilter";
 import GuestPriceDetail from "./GuestPriceDetail";
 import { supabase } from "@/integrations/supabase/client";
+import { readOccupancy, writeOccupancy } from "@/lib/occupancyCache";
+import { occupancyPromise } from "@/lib/prefetch";
 import type { House, HouseFilter as HouseFilterType, Booking, HousePricing } from "@/lib/types";
 
 const VISITOR_ID_KEY = "elkihome_visitor_id";
@@ -27,49 +29,53 @@ export default function GuestView({ onBack }: Props) {
   const [month, setMonth] = useState(new Date());
   const [filter, setFilter] = useState<HouseFilterType>("all");
   const [houses, setHouses] = useState<House[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  // Initialize bookings from cache (if fresh ≤5 min) — instant render
+  const cached = readOccupancy();
+  const [bookings, setBookings] = useState<Booking[]>(cached?.data ?? []);
   const [pricing, setPricing] = useState<HousePricing[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [pricingLoaded, setPricingLoaded] = useState(false);
+  // bookingsLoading: true only when no cache and prefetch not yet resolved
+  const [bookingsLoading, setBookingsLoading] = useState(!cached);
+  // isRefreshing: showing cached data while waiting for fresh prefetch
+  const [isRefreshing, setIsRefreshing] = useState(!!cached);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showPrice, setShowPrice] = useState(false);
 
+  // Houses load (small, fast)
   useEffect(() => {
     let cancelled = false;
-    // Load houses first (small, fast) — calendar renders immediately
     supabase.from("houses").select("*").then(({ data }) => {
       if (!cancelled && data) setHouses(data as House[]);
     });
-    // Load bookings + pricing in parallel, non-blocking
-    Promise.all([
-      supabase.from("public_bookings_view").select("*"),
-      supabase.from("house_pricing").select("*"),
-    ]).then(([bookingsRes, pricingRes]) => {
+    return () => { cancelled = true; };
+  }, []);
+
+  // Wait for prefetched occupancy (fresh data)
+  useEffect(() => {
+    let cancelled = false;
+    occupancyPromise.then((fresh) => {
       if (cancelled) return;
-      if (pricingRes.data) setPricing(pricingRes.data as HousePricing[]);
-      if (bookingsRes.data) {
-        setBookings(
-          bookingsRes.data.map((b: any) => ({
-            ...b,
-            guest_name: "",
-            guest_phone: "",
-            comment: "",
-            source: "",
-            guest_count: 0,
-            sauna: false,
-            plunge_pool: false,
-            bath_brooms: false,
-            fir_infusion: false,
-            citrus_infusion: false,
-            created_by: null,
-            created_at: "",
-            updated_at: "",
-          })) as Booking[]
-        );
+      if (fresh && fresh.length >= 0) {
+        setBookings(fresh);
+        writeOccupancy(fresh);
       }
-      setLoading(false);
+      setBookingsLoading(false);
+      setIsRefreshing(false);
     });
     return () => { cancelled = true; };
   }, []);
+
+  // Lazy-load pricing only when user opens price detail
+  useEffect(() => {
+    if (!showPrice || pricingLoaded) return;
+    let cancelled = false;
+    supabase.from("house_pricing").select("*").then(({ data }) => {
+      if (cancelled) return;
+      if (data) setPricing(data as HousePricing[]);
+      setPricingLoaded(true);
+    });
+    return () => { cancelled = true; };
+  }, [showPrice, pricingLoaded]);
 
   // Track visitor
   useEffect(() => {
@@ -138,8 +144,11 @@ export default function GuestView({ onBack }: Props) {
         <Button variant="ghost" size="icon" onClick={() => setMonth(subMonths(month, 1))}>
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <span className="text-sm font-semibold capitalize">
+        <span className="text-sm font-semibold capitalize flex items-center gap-1.5">
           {format(month, "LLLL yyyy", { locale: ru })}
+          {isRefreshing && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-label="Обновление данных" />
+          )}
         </span>
         <Button variant="ghost" size="icon" onClick={() => setMonth(addMonths(month, 1))}>
           <ChevronRight className="h-5 w-5" />
@@ -155,7 +164,8 @@ export default function GuestView({ onBack }: Props) {
           onDateClick={handleDateClick}
           selectedRange={{ start: null, end: null }}
           isPublicView
-          bookingsLoading={loading}
+          bookingsLoading={bookingsLoading}
+          isRefreshing={isRefreshing}
         />
       </div>
 
