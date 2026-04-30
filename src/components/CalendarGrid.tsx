@@ -71,6 +71,7 @@ export default function CalendarGrid({
   selectedRange,
   isPublicView = false,
   bookingsLoading = false,
+  isRefreshing = false,
 }: Props) {
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
