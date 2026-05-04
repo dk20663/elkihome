@@ -304,8 +304,11 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonth(subMonths(month, 1))}>
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <span className="text-sm font-semibold capitalize">
+        <span className="text-sm font-semibold capitalize inline-flex items-center gap-2">
           {format(month, "LLLL yyyy", { locale: ru })}
+          {bookingsRefreshing && (
+            <span className="inline-block h-3 w-3 rounded-full border-2 border-muted-foreground/30 border-t-primary animate-spin" aria-label="Обновление" />
+          )}
         </span>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonth(addMonths(month, 1))}>
           <ChevronRight className="h-5 w-5" />
