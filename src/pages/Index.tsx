@@ -322,6 +322,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
             onDateClick={handleDateClick}
             selectedRange={selectedRange}
             bookingsLoading={isLoading}
+            isRefreshing={bookingsRefreshing}
           />
         </div>
       </div>
