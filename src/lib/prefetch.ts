@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { writeOccupancy } from "./occupancyCache";
+import { normalizeBooking } from "./bookingNormalize";
 import type { Booking } from "./types";
 
 // Lazy occupancy prefetch — triggered explicitly by GuestView, NOT on app boot.
