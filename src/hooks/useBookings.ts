@@ -2,51 +2,73 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateOccupancy } from "@/lib/occupancyCache";
 import { resetOccupancyPrefetch } from "@/lib/prefetch";
+import { normalizeBooking } from "@/lib/bookingNormalize";
 import type { Booking, BookingFormData } from "@/lib/types";
 import { useEffect, useState } from "react";
 
+/**
+ * Two-phase loading:
+ *  Phase 1 — public_bookings_view (no auth wait) → instant occupancy colors.
+ *  Phase 2 — bookings (after auth)               → full data (PII, prices, services).
+ *
+ * Both phases produce Booking[] via the same normalizeBooking, so swapping
+ * Phase 1 → Phase 2 is visually seamless (same ids, same occupancy fields).
+ */
 export function useBookings() {
   const queryClient = useQueryClient();
   const [authReady, setAuthReady] = useState(false);
 
-  // Listen for auth state changes to know when session is available
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         if (session) {
           setAuthReady(true);
-          queryClient.invalidateQueries({ queryKey: ["bookings"] });
+          queryClient.invalidateQueries({ queryKey: ["bookings", "full"] });
         } else {
           setAuthReady(false);
         }
       }
     );
-
-    // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setAuthReady(true);
     });
-
     return () => subscription.unsubscribe();
   }, [queryClient]);
 
-  const query = useQuery({
-    queryKey: ["bookings", authReady],
+  // Phase 1 — fires immediately, no auth required, very small payload
+  const phase1 = useQuery({
+    queryKey: ["bookings", "occupancy"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("public_bookings_view")
+        .select("*");
+      if (error) throw error;
+      return (data ?? []).map(normalizeBooking);
+    },
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: true,
+  });
+
+  // Phase 2 — full data, gated on auth
+  const phase2 = useQuery({
+    queryKey: ["bookings", "full", authReady],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return [];
+      if (!session) return [] as Booking[];
       const { data, error } = await supabase
         .from("bookings")
         .select("*, houses(*)")
         .order("check_in");
       if (error) throw error;
-      return data as Booking[];
+      return (data ?? []).map(normalizeBooking);
     },
     enabled: authReady,
-    refetchOnMount: true,
     staleTime: 0,
+    refetchOnMount: true,
   });
 
+  // Realtime: invalidate both phases + guest cache
   useEffect(() => {
     const channel = supabase
       .channel("bookings-realtime")
@@ -54,20 +76,31 @@ export function useBookings() {
         "postgres_changes",
         { event: "*", schema: "public", table: "bookings" },
         () => {
-          // Invalidate guest occupancy cache + reset prefetch so next guest visit refetches
           invalidateOccupancy();
           resetOccupancyPrefetch();
-          queryClient.invalidateQueries({ queryKey: ["bookings"] });
+          queryClient.invalidateQueries({ queryKey: ["bookings", "occupancy"] });
+          queryClient.invalidateQueries({ queryKey: ["bookings", "full"] });
         }
       )
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
 
-  return query;
+  // Phase 2 wins when present; otherwise Phase 1 paints the colors.
+  const data: Booking[] = phase2.data ?? phase1.data ?? [];
+  const hasPhase2 = phase2.data !== undefined;
+  const isLoading = !phase1.data && !phase2.data && (phase1.isLoading || phase2.isLoading);
+  const isRefreshing = !!phase1.data && !hasPhase2 && authReady;
+
+  return {
+    data,
+    isLoading,
+    isRefreshing,
+    hasFullData: hasPhase2,
+    error: phase2.error ?? phase1.error,
+  };
 }
 
 export function useCreateBooking() {
@@ -75,11 +108,7 @@ export function useCreateBooking() {
   return useMutation({
     mutationFn: async (data: BookingFormData) => {
       const { data: user } = await supabase.auth.getUser();
-      const payload = {
-        ...data,
-        created_by: user.user?.id || null,
-      };
-      // Retry up to 3 times on transient failures
+      const payload = { ...data, created_by: user.user?.id || null };
       let lastError: Error | null = null;
       for (let attempt = 0; attempt < 3; attempt++) {
         const { error } = await supabase.from("bookings").insert(payload);
@@ -89,7 +118,9 @@ export function useCreateBooking() {
       }
       throw lastError;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookings"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    },
   });
 }
 
@@ -117,18 +148,15 @@ export function useCancelBooking() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      // Check if this is an avito-synced booking - if so, set manual_override to prevent re-sync
       const { data: booking } = await supabase
         .from("bookings")
         .select("synced_from")
         .eq("id", id)
         .single();
-      
       const updateData: any = { cancelled: true };
       if (booking?.synced_from === "avito") {
         updateData.manual_override = true;
       }
-      
       const { error } = await supabase
         .from("bookings")
         .update(updateData)

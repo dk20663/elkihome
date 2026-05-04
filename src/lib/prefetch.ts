@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { writeOccupancy } from "./occupancyCache";
+import { normalizeBooking } from "./bookingNormalize";
 import type { Booking } from "./types";
 
 // Lazy occupancy prefetch — triggered explicitly by GuestView, NOT on app boot.
@@ -14,22 +15,7 @@ export function startOccupancyPrefetch(): Promise<Booking[]> {
         .from("public_bookings_view")
         .select("*");
       if (error || !data) return [];
-      const bookings = data.map((b: any) => ({
-        ...b,
-        guest_name: "",
-        guest_phone: "",
-        comment: "",
-        source: "",
-        guest_count: 0,
-        sauna: false,
-        plunge_pool: false,
-        bath_brooms: false,
-        fir_infusion: false,
-        citrus_infusion: false,
-        created_by: null,
-        created_at: "",
-        updated_at: "",
-      })) as Booking[];
+      const bookings = data.map(normalizeBooking);
       writeOccupancy(bookings);
       return bookings;
     } catch {
