@@ -55,7 +55,7 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
   const { user, telegramUser, loading: authLoading, signOut } = useAuth();
 
   const { data: houses = [], isLoading: housesLoading } = useHouses();
-  const { data: bookings = [], isLoading: bookingsLoading } = useBookings();
+  const { data: bookings = [], isLoading: bookingsLoading, isRefreshing: bookingsRefreshing } = useBookings();
   const createBooking = useCreateBooking();
   const updateBooking = useUpdateBooking();
   const cancelBooking = useCancelBooking();
