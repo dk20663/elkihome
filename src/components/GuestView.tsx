@@ -23,9 +23,10 @@ function getLocalDateKey(date: Date) {
 
 interface Props {
   onBack: () => void;
+  hideBack?: boolean;
 }
 
-export default function GuestView({ onBack }: Props) {
+export default function GuestView({ onBack, hideBack = false }: Props) {
   const [month, setMonth] = useState(new Date());
   const [filter, setFilter] = useState<HouseFilterType>("all");
   const [houses, setHouses] = useState<House[]>([]);
@@ -125,9 +126,11 @@ export default function GuestView({ onBack }: Props) {
   return (
     <div className="min-h-screen bg-background p-4 flex flex-col lg:max-w-5xl max-w-md mx-auto">
       <div className="flex items-center gap-2 mb-4">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
+        {!hideBack && (
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        )}
         <div>
           <h1 className="text-lg font-bold leading-tight">Календарь загрузки</h1>
           <p className="text-sm font-medium text-foreground/70">

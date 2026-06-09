@@ -8,6 +8,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { CONTACT_CHANNELS } from "@/lib/contactChannels";
 import type { House, HouseFilter, Booking, HousePricing } from "@/lib/types";
 
 interface Props {
@@ -47,7 +48,7 @@ function isTodayMSKPlus4(date: Date): boolean {
   return isSameDay(date, today);
 }
 
-const TELEGRAM_URL = "https://t.me/elki_home24";
+
 
 const HOUSE_DISCOUNT = 2000;
 const SAUNA_DISCOUNTED = 3000;
@@ -90,7 +91,7 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
 
             return (
               <div key={house.id} className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2">
                     <span
                       className={`h-3 w-3 rounded-full ${
@@ -99,14 +100,20 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
                     />
                     <span className="font-semibold">Дом {house.name}</span>
                   </div>
-                  <Button
-                    size="sm"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => window.open(TELEGRAM_URL, "_blank")}
-                  >
-                    <MessageCircle className="h-3.5 w-3.5" />
-                    Забронировать
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    {CONTACT_CHANNELS.map((c) => (
+                      <Button
+                        key={c.id}
+                        size="sm"
+                        variant={c.id === "telegram" ? "default" : "secondary"}
+                        className="h-7 text-xs gap-1"
+                        onClick={() => window.open(c.url, "_blank", "noopener,noreferrer")}
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        {c.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
                 {isBooked && (
