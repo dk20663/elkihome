@@ -5,11 +5,30 @@
 прайсинг, синхронизация с Авито) автоматически попадают в виджет
 после пересборки.
 
+## Архитектура
+
+```
+Тильда iframe → GitHub Pages (HTML/JS/CSS виджета)
+                       │
+                       ▼
+           Cloudflare Worker-прокси  ◄── обход блокировки *.supabase.co в РФ
+                       │
+                       ▼
+              Supabase (БД, RLS, edge-функции)
+                       ▲
+                       │ напрямую, без прокси
+       Админка / Telegram-бот / Avito-синхронизация
+```
+
+Прокси нужен **только** виджету. Админка, edge-функции, синхронизация
+с Авито и база данных продолжают работать напрямую с Supabase.
+
 ## Репозиторий
 
 - GitHub: https://github.com/dk20663/elkihome
 - Бандл лежит в папке `dist-embed/` в корне репозитория
-- CDN (jsDelivr): https://cdn.jsdelivr.net/gh/dk20663/elkihome@v1/dist-embed/embed.html
+- Хостинг: GitHub Pages (`https://dk20663.github.io/elkihome/dist-embed/embed.html`)
+- Cloudflare Worker: см. [`cloudflare-worker/README.md`](./cloudflare-worker/README.md)
 
 ## Готовый код для блока T123 в Тильде
 
