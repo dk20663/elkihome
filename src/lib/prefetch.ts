@@ -14,11 +14,24 @@ export function startOccupancyPrefetch(): Promise<Booking[]> {
       const { data, error } = await supabase
         .from("public_bookings_view")
         .select("*");
+      // eslint-disable-next-line no-console
+      console.log("[ElkiHome] public_bookings_view →", {
+        error,
+        count: data?.length ?? 0,
+        first5: (data ?? []).slice(0, 5),
+      });
       if (error || !data) return [];
       const bookings = data.map(normalizeBooking);
+      // eslint-disable-next-line no-console
+      console.log("[ElkiHome] normalized bookings →", {
+        count: bookings.length,
+        first: bookings[0],
+      });
       writeOccupancy(bookings);
       return bookings;
-    } catch {
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("[ElkiHome] prefetch failed:", e);
       return [];
     }
   })();
