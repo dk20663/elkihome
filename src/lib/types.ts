@@ -30,6 +30,7 @@ export interface Booking {
   created_at: string;
   updated_at: string;
   houses?: House;
+  house_name?: string;
 }
 
 export interface HousePricing {
