@@ -56,7 +56,9 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
   // Wait for prefetched occupancy (fresh data) — start prefetch if not yet running
   useEffect(() => {
     let cancelled = false;
+    console.log("[ElkiHome] starting occupancy prefetch...");
     startOccupancyPrefetch().then((fresh) => {
+      console.log("[ElkiHome] prefetch resolved:", { count: fresh?.length, cancelled, first: fresh?.[0] });
       if (cancelled) return;
       if (fresh && fresh.length >= 0) {
         setBookings(fresh);
@@ -67,6 +69,11 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
     });
     return () => { cancelled = true; };
   }, []);
+
+  // Track bookings state changes
+  useEffect(() => {
+    console.log("[ElkiHome] bookings state changed → length:", bookings.length, "first:", bookings[0]);
+  }, [bookings]);
 
   // Lazy-load pricing only when user opens price detail
   useEffect(() => {
