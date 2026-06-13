@@ -4,37 +4,38 @@ import { normalizeBooking } from "./bookingNormalize";
 import type { Booking } from "./types";
 
 // Lazy occupancy prefetch — triggered explicitly by GuestView, NOT on app boot.
-// Admin sessions never call this, so no extra network or cache writes happen.
 let _occupancyPromise: Promise<Booking[]> | null = null;
+
+/** Minimal column set needed to render occupancy. */
+const OCCUPANCY_COLUMNS =
+  "id,house_id,house_name,check_in,check_out,cancelled,synced_from";
 
 export function startOccupancyPrefetch(): Promise<Booking[]> {
   if (_occupancyPromise) return _occupancyPromise;
   _occupancyPromise = (async () => {
     try {
+      // Only fetch future / current bookings — drop historical data.
+      // Use a small back-window (yesterday) to be safe against TZ edge cases.
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 1);
+      const cutoffStr = cutoff.toISOString().slice(0, 10);
+
       const { data, error } = await supabase
         .from("public_bookings_view")
-        .select("*");
-      // eslint-disable-next-line no-console
-      console.log("[ElkiHome] public_bookings_view →", {
-        error,
-        count: data?.length ?? 0,
-        first5: (data ?? []).slice(0, 5),
-      });
+        .select(OCCUPANCY_COLUMNS)
+        .eq("cancelled", false)
+        .gte("check_out", cutoffStr);
+
       if (error || !data) return [];
-      const bookings = data.map(normalizeBooking);
-      // eslint-disable-next-line no-console
-      console.log("[ElkiHome] normalized bookings →", {
-        count: bookings.length,
-        first: bookings[0],
-      });
-      writeOccupancy(bookings);
-      return bookings;
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error("[ElkiHome] prefetch failed:", e);
+      return data.map(normalizeBooking);
+    } catch {
       return [];
     }
   })();
+  // Write cache after resolve (fire-and-forget so callers aren't blocked).
+  _occupancyPromise.then((b) => {
+    if (b.length) writeOccupancy(b);
+  });
   return _occupancyPromise;
 }
 
