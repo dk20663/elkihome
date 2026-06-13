@@ -45,7 +45,9 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
   // Houses load (small, fast)
   useEffect(() => {
     let cancelled = false;
-    supabase.from("houses").select("*").then(({ data }) => {
+    supabase.from("houses").select("*").then(({ data, error }) => {
+      // eslint-disable-next-line no-console
+      console.log("[ElkiHome] houses →", { error, count: data?.length ?? 0, data });
       if (!cancelled && data) setHouses(data as House[]);
     });
     return () => { cancelled = true; };
