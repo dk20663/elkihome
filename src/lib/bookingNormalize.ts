@@ -32,5 +32,6 @@ export function normalizeBooking(raw: any): Booking {
     created_at: raw.created_at ?? "",
     updated_at: raw.updated_at ?? "",
     houses: raw.houses ?? undefined,
+    house_name: raw.house_name ?? undefined,
   } as Booking;
 }
