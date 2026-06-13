@@ -79,15 +79,29 @@ export default function CalendarGrid({
     return eachDayOfInterval({ start, end });
   }, [month]);
 
-  const greenHouse = houses.find((h) => h.name === "GREEN");
-  const blackHouse = houses.find((h) => h.name === "BLACK");
+  const greenHouse = houses.find((h) => h.name?.toUpperCase() === "GREEN");
+  const blackHouse = houses.find((h) => h.name?.toUpperCase() === "BLACK");
+
+  // Fallback name→id map (covers bookings from public_bookings_view that include house_name)
+  const nameToId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const h of houses) m.set(h.name?.toUpperCase?.() ?? "", h.id);
+    return m;
+  }, [houses]);
+  const matchHouse = (b: Booking, target?: House) => {
+    if (!target) return false;
+    if (b.house_id && b.house_id === target.id) return true;
+    const hn = (b as any).house_name as string | undefined;
+    if (hn && nameToId.get(hn.toUpperCase()) === target.id) return true;
+    return false;
+  };
 
   const filteredBookings = useMemo(() => {
     if (filter === "all") return bookings;
     const house = filter === "green" ? greenHouse : blackHouse;
     if (!house) return bookings;
-    return bookings.filter((b) => b.house_id === house.id);
-  }, [bookings, filter, greenHouse, blackHouse]);
+    return bookings.filter((b) => matchHouse(b, house));
+  }, [bookings, filter, greenHouse, blackHouse, nameToId]);
 
   const today = startOfDay(new Date());
 
@@ -110,11 +124,11 @@ export default function CalendarGrid({
       let blackAvito = false;
       for (const b of allDayBookings) {
         if (b.cancelled) continue;
-        if (greenHouse && b.house_id === greenHouse.id) {
+        if (matchHouse(b, greenHouse)) {
           greenIds.add(b.id);
           if (b.synced_from === "avito") greenAvito = true;
         }
-        if (blackHouse && b.house_id === blackHouse.id) {
+        if (matchHouse(b, blackHouse)) {
           blackIds.add(b.id);
           if (b.synced_from === "avito") blackAvito = true;
         }
