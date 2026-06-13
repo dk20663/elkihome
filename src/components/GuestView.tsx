@@ -45,9 +45,7 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
   // Houses load (small, fast)
   useEffect(() => {
     let cancelled = false;
-    supabase.from("houses").select("*").then(({ data, error }) => {
-      // eslint-disable-next-line no-console
-      console.log("[ElkiHome] houses →", { error, count: data?.length ?? 0, data });
+    supabase.from("houses").select("*").then(({ data }) => {
       if (!cancelled && data) setHouses(data as House[]);
     });
     return () => { cancelled = true; };
@@ -56,11 +54,9 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
   // Wait for prefetched occupancy (fresh data) — start prefetch if not yet running
   useEffect(() => {
     let cancelled = false;
-    console.log("[ElkiHome] starting occupancy prefetch...");
     startOccupancyPrefetch().then((fresh) => {
-      console.log("[ElkiHome] prefetch resolved:", { count: fresh?.length, cancelled, first: fresh?.[0] });
       if (cancelled) return;
-      if (fresh && fresh.length >= 0) {
+      if (fresh) {
         setBookings(fresh);
         writeOccupancy(fresh);
       }
@@ -70,10 +66,6 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
     return () => { cancelled = true; };
   }, []);
 
-  // Track bookings state changes
-  useEffect(() => {
-    console.log("[ElkiHome] bookings state changed → length:", bookings.length, "first:", bookings[0]);
-  }, [bookings]);
 
   // Lazy-load pricing only when user opens price detail
   useEffect(() => {
@@ -168,16 +160,6 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
       </div>
 
       <div className="bg-card rounded-2xl p-3 shadow-sm border border-border/50">
-        {(() => {
-          // eslint-disable-next-line no-console
-          console.log("[ElkiHome] → CalendarGrid props", {
-            bookingsCount: bookings.length,
-            housesCount: houses.length,
-            houseNames: houses.map((h) => h.name),
-            firstBooking: bookings[0],
-          });
-          return null;
-        })()}
         <CalendarGrid
           month={month}
           bookings={bookings}
