@@ -17,7 +17,7 @@ import path from "path";
  * Если оставить пустую строку — embed будет ходить напрямую в Supabase
  * (работает с VPN или вне РФ).
  */
-const PROXY_URL = ""; // пример: "https://elkihome-proxy.dk20663.workers.dev"
+const PROXY_URL = "https://elkihome-proxy.deniskurenkov20499.workers.dev";
 
 const SUPABASE_URL_FOR_EMBED =
   PROXY_URL || "https://hpfurpylorcuvcoevpsl.supabase.co";
