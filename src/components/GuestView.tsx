@@ -7,7 +7,7 @@ import CalendarGrid from "./CalendarGrid";
 import HouseFilter from "./HouseFilter";
 import GuestPriceDetail from "./GuestPriceDetail";
 import { supabase } from "@/integrations/supabase/client";
-import { readOccupancy, writeOccupancy } from "@/lib/occupancyCache";
+import { readOccupancy } from "@/lib/occupancyCache";
 import { startOccupancyPrefetch } from "@/lib/prefetch";
 import type { House, HouseFilter as HouseFilterType, Booking, HousePricing } from "@/lib/types";
 
