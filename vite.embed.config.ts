@@ -33,7 +33,10 @@ export default defineConfig({
   },
   build: {
     outDir: "dist-embed",
-    emptyOutDir: true,
+    // НЕ очищаем dist-embed — там лежит data/snapshot.json, который
+    // обновляется отдельным GitHub Action и не должен пропадать
+    // после локальной пересборки виджета.
+    emptyOutDir: false,
     rollupOptions: {
       input: path.resolve(__dirname, "embed.html"),
     },
