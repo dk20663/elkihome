@@ -70,14 +70,19 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="bottom" className="rounded-t-2xl">
-        <SheetHeader>
-          <SheetTitle>
-            {format(date, "d MMMM yyyy", { locale: ru })}
-          </SheetTitle>
-          <p className="text-xs text-muted-foreground capitalize">{dayType}</p>
-        </SheetHeader>
-        <div className="space-y-5 pt-4">
+      <SheetContent
+        side="bottom"
+        className="rounded-t-2xl max-h-[85dvh] flex flex-col p-0"
+      >
+        <div className="p-6 pb-0 flex-shrink-0">
+          <SheetHeader>
+            <SheetTitle>
+              {format(date, "d MMMM yyyy", { locale: ru })}
+            </SheetTitle>
+            <p className="text-xs text-muted-foreground capitalize">{dayType}</p>
+          </SheetHeader>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 pb-8 pt-4 space-y-5">
           {housesToShow.map((house) => {
             if (!house) return null;
             const customPrice = pricing.find((p) => p.house_id === house.id && p.date === dateStr);
