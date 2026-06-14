@@ -5,23 +5,49 @@
 прайсинг, синхронизация с Авито) автоматически попадают в виджет
 после пересборки.
 
-## Архитектура
+## Архитектура (v2 — статический снапшот)
 
 ```
-Тильда iframe → GitHub Pages (HTML/JS/CSS виджета)
+[раз в 10 минут] GitHub Actions → Supabase
                        │
                        ▼
-           Cloudflare Worker-прокси  ◄── обход блокировки *.supabase.co в РФ
+        dist-embed/data/snapshot.json (коммит в репо)
                        │
                        ▼
-              Supabase (БД, RLS, edge-функции)
-                       ▲
-                       │ напрямую, без прокси
-       Админка / Telegram-бот / Avito-синхронизация
+              jsDelivr CDN ◄── один статичный fetch
+                       │
+                       ▼
+                Тильда iframe (виджет)
 ```
 
-Прокси нужен **только** виджету. Админка, edge-функции, синхронизация
-с Авито и база данных продолжают работать напрямую с Supabase.
+Браузер пользователя обращается **только к jsDelivr** (не блокируется в РФ).
+Никаких запросов к Supabase или Cloudflare Worker из браузера — всё
+работает без VPN и без задержек. Цена обновления данных: задержка
+до 10 минут до появления новой брони в публичном календаре.
+
+Админка, edge-функции, синхронизация с Авито и Telegram-бот продолжают
+работать с Supabase напрямую (с серверов, где блокировок нет).
+
+Cloudflare Worker (`cloudflare-worker/`) больше не требуется виджету —
+оставлен в репозитории как исторический fallback.
+
+## Снапшот
+
+Файл `dist-embed/data/snapshot.json` (~5–20 КБ) содержит houses,
+активные брони и кастомные цены. Обновляется автоматически каждые
+10 минут через GitHub Action `.github/workflows/publish-occupancy.yml`.
+
+### Настройка на GitHub один раз
+
+1. Settings → Secrets and variables → Actions → New repository secret:
+   имя `SUPABASE_ANON_KEY`, значение — публичный anon-ключ Supabase.
+2. Tab **Actions** → workflow «Publish occupancy snapshot» → **Enable**.
+3. **Run workflow** для проверки — должен появиться коммит
+   `chore(data): refresh occupancy snapshot`.
+
+Дальше Action работает сам.
+
+
 
 ## Репозиторий
 
