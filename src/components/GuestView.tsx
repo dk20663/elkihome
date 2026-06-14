@@ -74,15 +74,24 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
   }, []);
 
 
-  // Lazy-load pricing only when user opens price detail
+  // Lazy-load pricing only when user opens price detail — с ретраями
   useEffect(() => {
     if (!showPrice || pricingLoaded) return;
     let cancelled = false;
-    supabase.from("house_pricing").select("*").then(({ data }) => {
-      if (cancelled) return;
-      if (data) setPricing(data as HousePricing[]);
-      setPricingLoaded(true);
-    });
+    const load = async () => {
+      for (let attempt = 1; attempt <= 3 && !cancelled; attempt++) {
+        const { data, error } = await supabase.from("house_pricing").select("*");
+        if (cancelled) return;
+        if (!error && data) {
+          setPricing(data as HousePricing[]);
+          setPricingLoaded(true);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 400 * attempt));
+      }
+      if (!cancelled) setPricingLoaded(true);
+    };
+    load();
     return () => { cancelled = true; };
   }, [showPrice, pricingLoaded]);
 
