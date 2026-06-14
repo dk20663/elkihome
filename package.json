@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
-    "build:embed": "vite build --config vite.embed.config.ts",
+    "build:embed": "vite build --config vite.embed.config.ts && node scripts/generate-occupancy.mjs || echo '⚠ snapshot skipped (set SUPABASE_ANON_KEY to refresh data)'",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
