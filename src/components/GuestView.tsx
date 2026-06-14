@@ -7,8 +7,7 @@ import CalendarGrid from "./CalendarGrid";
 import HouseFilter from "./HouseFilter";
 import GuestPriceDetail from "./GuestPriceDetail";
 import { supabase } from "@/integrations/supabase/client";
-import { readOccupancy } from "@/lib/occupancyCache";
-import { startOccupancyPrefetch } from "@/lib/prefetch";
+import { loadSnapshot, readCachedSnapshot } from "@/lib/snapshot";
 import type { House, HouseFilter as HouseFilterType, Booking, HousePricing } from "@/lib/types";
 
 const VISITOR_ID_KEY = "elkihome_visitor_id";
@@ -29,81 +28,47 @@ interface Props {
 export default function GuestView({ onBack, hideBack = false }: Props) {
   const [month, setMonth] = useState(new Date());
   const [filter, setFilter] = useState<HouseFilterType>("all");
-  const [houses, setHouses] = useState<House[]>([]);
-  // Initialize bookings from cache (fresh ≤5 min; stale ≤7 дней — лучше пустого экрана для РФ-сетей)
-  const cached = readOccupancy();
-  const [bookings, setBookings] = useState<Booking[]>(cached?.data ?? []);
-  const [pricing, setPricing] = useState<HousePricing[]>([]);
-  const [pricingLoaded, setPricingLoaded] = useState(false);
-  // bookingsLoading: true только если нет НИКАКОГО кэша
+
+  // Мгновенный рендер из локального кэша снапшота
+  const cached = readCachedSnapshot();
+  const [houses, setHouses] = useState<House[]>(cached?.data.houses ?? []);
+  const [bookings, setBookings] = useState<Booking[]>(cached?.data.bookings ?? []);
+  const [pricing, setPricing] = useState<HousePricing[]>(cached?.data.pricing ?? []);
   const [bookingsLoading, setBookingsLoading] = useState(!cached);
-  // isRefreshing: показываем кэш и тихо обновляем
   const [isRefreshing, setIsRefreshing] = useState(!cached?.isFresh);
+
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showPrice, setShowPrice] = useState(false);
 
-  // Houses load (small, fast) — с ретраями
+  // Один запрос — статический snapshot.json с того же CDN, что и виджет.
+  // Никаких обращений к Supabase / Cloudflare Worker из браузера.
   useEffect(() => {
     let cancelled = false;
-    let attempt = 0;
-    const load = async () => {
-      while (!cancelled && attempt < 4) {
-        attempt++;
-        const { data } = await supabase.from("houses").select("*");
-        if (cancelled) return;
-        if (data && data.length) { setHouses(data as House[]); return; }
-        await new Promise((r) => setTimeout(r, 500 * attempt));
+    loadSnapshot().then((snap) => {
+      if (cancelled || !snap) {
+        if (!cancelled) {
+          setBookingsLoading(false);
+          setIsRefreshing(false);
+        }
+        return;
       }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, []);
-
-  // Prefetch occupancy with retries; если получили пустой ответ — оставляем кэш
-  useEffect(() => {
-    let cancelled = false;
-    startOccupancyPrefetch().then((fresh) => {
-      if (cancelled) return;
-      if (fresh && fresh.length) {
-        setBookings(fresh);
-      }
+      setHouses(snap.houses);
+      setBookings(snap.bookings);
+      setPricing(snap.pricing);
       setBookingsLoading(false);
       setIsRefreshing(false);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-
-  // Lazy-load pricing only when user opens price detail — с ретраями
-  useEffect(() => {
-    if (!showPrice || pricingLoaded) return;
-    let cancelled = false;
-    const load = async () => {
-      for (let attempt = 1; attempt <= 3 && !cancelled; attempt++) {
-        const { data, error } = await supabase.from("house_pricing").select("*");
-        if (cancelled) return;
-        if (!error && data) {
-          setPricing(data as HousePricing[]);
-          setPricingLoaded(true);
-          return;
-        }
-        await new Promise((r) => setTimeout(r, 400 * attempt));
-      }
-      if (!cancelled) setPricingLoaded(true);
-    };
-    load();
-    return () => { cancelled = true; };
-  }, [showPrice, pricingLoaded]);
-
-  // Track visitor
+  // Трекинг посетителя — write-only, не блокирует UI, тихо игнорируется при недоступности Supabase
   useEffect(() => {
     const trackVisit = async () => {
       const today = getLocalDateKey(new Date());
       const lastTrackedDate = localStorage.getItem(LAST_VISIT_DATE_KEY);
-
-      if (lastTrackedDate === today) {
-        return;
-      }
+      if (lastTrackedDate === today) return;
 
       let visitorId = localStorage.getItem(VISITOR_ID_KEY);
       if (!visitorId) {
@@ -111,25 +76,15 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
         localStorage.setItem(VISITOR_ID_KEY, visitorId);
       }
 
-      const { error } = await supabase.from("page_visits").insert({
-        visitor_id: visitorId,
-        visited_at: today,
-      });
-
-      if (!error) {
-        localStorage.setItem(LAST_VISIT_DATE_KEY, today);
-        return;
-      }
-
-      const isDuplicate = error.code === "23505" || error.message.includes("duplicate") || error.message.includes("unique");
-
-      if (isDuplicate) {
-        localStorage.setItem(LAST_VISIT_DATE_KEY, today);
-        return;
-      }
-
-      if (!isDuplicate) {
-        console.error("Visit tracking failed:", error.message);
+      try {
+        const { error } = await supabase
+          .from("page_visits")
+          .insert({ visitor_id: visitorId, visited_at: today });
+        if (!error || error.code === "23505" || error.message?.includes("duplicate")) {
+          localStorage.setItem(LAST_VISIT_DATE_KEY, today);
+        }
+      } catch {
+        /* ignore — аналитика не критична */
       }
     };
     trackVisit();

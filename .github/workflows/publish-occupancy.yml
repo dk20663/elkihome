@@ -1,0 +1,42 @@
+name: Publish occupancy snapshot
+
+on:
+  schedule:
+    # Каждые 10 минут — компромисс между свежестью данных и нагрузкой на git.
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-occupancy
+  cancel-in-progress: false
+
+jobs:
+  build-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Generate snapshot
+        env:
+          SUPABASE_URL: https://hpfurpylorcuvcoevpsl.supabase.co
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: node scripts/generate-occupancy.mjs
+
+      - name: Commit snapshot if changed
+        run: |
+          if [[ -z "$(git status --porcelain dist-embed/data/snapshot.json)" ]]; then
+            echo "No changes."
+            exit 0
+          fi
+          git config user.name  "elkihome-bot"
+          git config user.email "bot@elkihome24.ru"
+          git add dist-embed/data/snapshot.json
+          git commit -m "chore(data): refresh occupancy snapshot [skip ci]"
+          git push
