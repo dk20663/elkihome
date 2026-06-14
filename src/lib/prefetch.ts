@@ -8,7 +8,7 @@ let _occupancyPromise: Promise<Booking[]> | null = null;
 
 /** Minimal column set needed to render occupancy. */
 const OCCUPANCY_COLUMNS =
-  "id,house_id,house_name,check_in,check_out,cancelled,synced_from";
+  "id,house_id,house_name,check_in,check_out,cancelled";
 
 export function startOccupancyPrefetch(): Promise<Booking[]> {
   if (_occupancyPromise) return _occupancyPromise;
