@@ -7,7 +7,7 @@ import CalendarGrid from "./CalendarGrid";
 import HouseFilter from "./HouseFilter";
 import GuestPriceDetail from "./GuestPriceDetail";
 import { supabase } from "@/integrations/supabase/client";
-import { readOccupancy, writeOccupancy } from "@/lib/occupancyCache";
+import { readOccupancy } from "@/lib/occupancyCache";
 import { startOccupancyPrefetch } from "@/lib/prefetch";
 import type { House, HouseFilter as HouseFilterType, Booking, HousePricing } from "@/lib/types";
 
@@ -30,35 +30,42 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
   const [month, setMonth] = useState(new Date());
   const [filter, setFilter] = useState<HouseFilterType>("all");
   const [houses, setHouses] = useState<House[]>([]);
-  // Initialize bookings from cache (if fresh ≤5 min) — instant render
+  // Initialize bookings from cache (fresh ≤5 min; stale ≤7 дней — лучше пустого экрана для РФ-сетей)
   const cached = readOccupancy();
   const [bookings, setBookings] = useState<Booking[]>(cached?.data ?? []);
   const [pricing, setPricing] = useState<HousePricing[]>([]);
   const [pricingLoaded, setPricingLoaded] = useState(false);
-  // bookingsLoading: true only when no cache and prefetch not yet resolved
+  // bookingsLoading: true только если нет НИКАКОГО кэша
   const [bookingsLoading, setBookingsLoading] = useState(!cached);
-  // isRefreshing: showing cached data while waiting for fresh prefetch
-  const [isRefreshing, setIsRefreshing] = useState(!!cached);
+  // isRefreshing: показываем кэш и тихо обновляем
+  const [isRefreshing, setIsRefreshing] = useState(!cached?.isFresh);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showPrice, setShowPrice] = useState(false);
 
-  // Houses load (small, fast)
+  // Houses load (small, fast) — с ретраями
   useEffect(() => {
     let cancelled = false;
-    supabase.from("houses").select("*").then(({ data }) => {
-      if (!cancelled && data) setHouses(data as House[]);
-    });
+    let attempt = 0;
+    const load = async () => {
+      while (!cancelled && attempt < 4) {
+        attempt++;
+        const { data } = await supabase.from("houses").select("*");
+        if (cancelled) return;
+        if (data && data.length) { setHouses(data as House[]); return; }
+        await new Promise((r) => setTimeout(r, 500 * attempt));
+      }
+    };
+    load();
     return () => { cancelled = true; };
   }, []);
 
-  // Wait for prefetched occupancy (fresh data) — start prefetch if not yet running
+  // Prefetch occupancy with retries; если получили пустой ответ — оставляем кэш
   useEffect(() => {
     let cancelled = false;
     startOccupancyPrefetch().then((fresh) => {
       if (cancelled) return;
-      if (fresh) {
+      if (fresh && fresh.length) {
         setBookings(fresh);
-        writeOccupancy(fresh);
       }
       setBookingsLoading(false);
       setIsRefreshing(false);
@@ -67,15 +74,24 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
   }, []);
 
 
-  // Lazy-load pricing only when user opens price detail
+  // Lazy-load pricing only when user opens price detail — с ретраями
   useEffect(() => {
     if (!showPrice || pricingLoaded) return;
     let cancelled = false;
-    supabase.from("house_pricing").select("*").then(({ data }) => {
-      if (cancelled) return;
-      if (data) setPricing(data as HousePricing[]);
-      setPricingLoaded(true);
-    });
+    const load = async () => {
+      for (let attempt = 1; attempt <= 3 && !cancelled; attempt++) {
+        const { data, error } = await supabase.from("house_pricing").select("*");
+        if (cancelled) return;
+        if (!error && data) {
+          setPricing(data as HousePricing[]);
+          setPricingLoaded(true);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 400 * attempt));
+      }
+      if (!cancelled) setPricingLoaded(true);
+    };
+    load();
     return () => { cancelled = true; };
   }, [showPrice, pricingLoaded]);
 
