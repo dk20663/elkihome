@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { ChevronLeft } from "lucide-react";
 import type { House } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,11 +22,16 @@ export default function PriceSettings({ houses, onClose }: Props) {
       name: h.name,
       weekday: h.base_price_weekday,
       weekend: h.base_price_weekend,
+      guest_comment: h.guest_comment ?? "",
     }))
   );
   const [saving, setSaving] = useState(false);
 
-  const updatePrice = (id: string, field: "weekday" | "weekend", value: number) => {
+  const updateField = (
+    id: string,
+    field: "weekday" | "weekend" | "guest_comment",
+    value: number | string
+  ) => {
     setPrices((prev) =>
       prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
     );
@@ -40,11 +46,12 @@ export default function PriceSettings({ houses, onClose }: Props) {
           .update({
             base_price_weekday: p.weekday,
             base_price_weekend: p.weekend,
+            guest_comment: p.guest_comment,
           })
           .eq("id", p.id);
         if (error) throw error;
       }
-      toast.success("Цены обновлены");
+      toast.success("Сохранено");
       await queryClient.invalidateQueries({ queryKey: ["houses"] });
       onClose();
     } catch (err: any) {
@@ -87,7 +94,7 @@ export default function PriceSettings({ houses, onClose }: Props) {
                 <Input
                   type="number"
                   value={p.weekday}
-                  onChange={(e) => updatePrice(p.id, "weekday", Number(e.target.value))}
+                  onChange={(e) => updateField(p.id, "weekday", Number(e.target.value))}
                   className="mt-1"
                 />
               </div>
@@ -96,10 +103,25 @@ export default function PriceSettings({ houses, onClose }: Props) {
                 <Input
                   type="number"
                   value={p.weekend}
-                  onChange={(e) => updatePrice(p.id, "weekend", Number(e.target.value))}
+                  onChange={(e) => updateField(p.id, "weekend", Number(e.target.value))}
                   className="mt-1"
                 />
               </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">
+                Комментарий для гостя (виден при просмотре даты)
+              </Label>
+              <Textarea
+                value={p.guest_comment}
+                onChange={(e) => updateField(p.id, "guest_comment", e.target.value)}
+                placeholder="Например: В стоимость включён бассейн"
+                className="mt-1 min-h-[60px]"
+                maxLength={300}
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Оставьте пустым, чтобы скрыть комментарий
+              </p>
             </div>
           </div>
         ))}

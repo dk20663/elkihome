@@ -4,6 +4,7 @@ export interface House {
   color: string;
   base_price_weekday: number;
   base_price_weekend: number;
+  guest_comment?: string;
   created_at: string;
 }
 

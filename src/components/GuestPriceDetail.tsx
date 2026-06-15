@@ -94,6 +94,8 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
             const hasTodayDiscount = isToday && !isBooked;
             const discountedHousePrice = Math.max(0, housePrice - HOUSE_DISCOUNT);
 
+            const actionLabel = isBooked ? "Связаться" : "Забронировать";
+            const guestComment = (house.guest_comment ?? "").trim();
             return (
               <div key={house.id} className="space-y-2">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -105,21 +107,32 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
                     />
                     <span className="font-semibold">Дом {house.name}</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    {CONTACT_CHANNELS.map((c) => (
-                      <Button
-                        key={c.id}
-                        size="sm"
-                        variant={c.id === "telegram" ? "default" : "secondary"}
-                        className="h-7 text-xs gap-1"
-                        onClick={() => window.open(c.url, "_blank", "noopener,noreferrer")}
-                      >
-                        <MessageCircle className="h-3.5 w-3.5" />
-                        {c.label}
-                      </Button>
-                    ))}
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    <span className="text-xs font-semibold text-foreground/80">
+                      {actionLabel}:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {CONTACT_CHANNELS.map((c) => (
+                        <Button
+                          key={c.id}
+                          size="sm"
+                          variant={c.id === "telegram" ? "default" : "secondary"}
+                          className="h-7 text-xs gap-1"
+                          onClick={() => window.open(c.url, "_blank", "noopener,noreferrer")}
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          {c.label}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
                 </div>
+
+                {guestComment && (
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs text-foreground/90 leading-relaxed">
+                    {guestComment}
+                  </div>
+                )}
 
                 {isBooked && (
                   <div className="rounded-xl bg-destructive/10 border border-destructive/20 p-3 text-xs text-destructive">
