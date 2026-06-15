@@ -1,6 +1,6 @@
 import { format, getDay, parseISO, isSameDay, isAfter, isBefore } from "date-fns";
 import { ru } from "date-fns/locale";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -129,8 +129,11 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
                 </div>
 
                 {guestComment && (
-                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs text-foreground/90 leading-relaxed">
-                    {guestComment}
+                  <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50 p-4 shadow-sm flex items-start gap-3">
+                    <Info className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm font-medium text-emerald-900 leading-relaxed">
+                      {guestComment}
+                    </span>
                   </div>
                 )}
 
