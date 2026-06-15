@@ -62,8 +62,14 @@ async function fetchOnce(): Promise<Snapshot | null> {
       const res = await fetch(url, { signal: ctrl.signal, cache: "default" });
       clearTimeout(t);
       if (!res.ok) continue;
-      const json = (await res.json()) as Snapshot;
-      if (!json?.houses) continue;
+      // Защита от SPA-фолбэка: на lovable.app несуществующий путь отдаёт
+      // index.html со статусом 200. Принимаем ответ только если это JSON.
+      const ct = res.headers.get("content-type") || "";
+      if (!ct.includes("json") && !ct.includes("text/plain")) continue;
+      const text = await res.text();
+      if (!text.trim().startsWith("{")) continue;
+      const json = JSON.parse(text) as Snapshot;
+      if (!json?.houses || !Array.isArray(json.houses)) continue;
       return {
         ...json,
         bookings: (json.bookings || []).map(normalizeBooking),
@@ -75,19 +81,60 @@ async function fetchOnce(): Promise<Snapshot | null> {
   return null;
 }
 
+async function fetchFromSupabase(): Promise<Snapshot | null> {
+  // Фолбэк для основного Lovable-домена, где нет статического snapshot.json.
+  // Embed-виджет сюда не попадает — у него снапшот лежит рядом с HTML.
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 1);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+    const [housesRes, bookingsRes, pricingRes] = await Promise.all([
+      supabase.from("houses").select("*").order("name", { ascending: true }),
+      supabase
+        .from("public_bookings_view")
+        .select("id,house_id,house_name,check_in,check_out,cancelled")
+        .eq("cancelled", false)
+        .gte("check_out", cutoffStr),
+      supabase.from("house_pricing").select("*").gte("date", cutoffStr),
+    ]);
+
+    if (housesRes.error || bookingsRes.error) return null;
+
+    return {
+      version: 1,
+      generated_at: new Date().toISOString(),
+      cutoff: cutoffStr,
+      houses: (housesRes.data ?? []) as House[],
+      bookings: ((bookingsRes.data ?? []) as any[]).map(normalizeBooking),
+      pricing: (pricingRes.data ?? []) as HousePricing[],
+    };
+  } catch {
+    return null;
+  }
+}
+
 let _promise: Promise<Snapshot | null> | null = null;
 
 export function loadSnapshot(): Promise<Snapshot | null> {
   if (_promise) return _promise;
   _promise = (async () => {
-    // 3 быстрые попытки — статика отдается мгновенно, но мобильные сети мигают.
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    // 1) Сначала пробуем статический снапшот (embed на jsDelivr / Tilda).
+    for (let attempt = 1; attempt <= 2; attempt++) {
       const fresh = await fetchOnce();
       if (fresh) {
         writeCachedSnapshot(fresh);
         return fresh;
       }
-      if (attempt < 3) await new Promise((r) => setTimeout(r, 300 * attempt));
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 300));
+    }
+    // 2) Фолбэк: читаем напрямую из Supabase (основной Lovable-домен,
+    //    где snapshot.json физически отсутствует).
+    const live = await fetchFromSupabase();
+    if (live) {
+      writeCachedSnapshot(live);
+      return live;
     }
     return null;
   })();
