@@ -48,7 +48,7 @@ async function main() {
   const cutoff = todayMinus1ISO();
 
   const [houses, bookings, pricing] = await Promise.all([
-    sb("houses?select=id,name,color,base_price_weekday,base_price_weekend,created_at"),
+    sb("houses?select=id,name,color,base_price_weekday,base_price_weekend,guest_comment,created_at"),
     sb(
       `public_bookings_view?select=id,house_id,house_name,check_in,check_out,cancelled&cancelled=eq.false&check_out=gte.${cutoff}`
     ),
