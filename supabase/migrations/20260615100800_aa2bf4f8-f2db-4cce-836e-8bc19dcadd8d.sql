@@ -1,0 +1,1 @@
+ALTER TABLE public.houses ADD COLUMN IF NOT EXISTS guest_comment text NOT NULL DEFAULT '';

@@ -132,6 +132,7 @@ export type Database = {
           base_price_weekend: number
           color: string
           created_at: string
+          guest_comment: string
           id: string
           name: string
         }
@@ -140,6 +141,7 @@ export type Database = {
           base_price_weekend?: number
           color: string
           created_at?: string
+          guest_comment?: string
           id?: string
           name: string
         }
@@ -148,6 +150,7 @@ export type Database = {
           base_price_weekend?: number
           color?: string
           created_at?: string
+          guest_comment?: string
           id?: string
           name?: string
         }
