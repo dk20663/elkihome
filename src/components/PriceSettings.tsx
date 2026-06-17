@@ -24,6 +24,7 @@ export default function PriceSettings({ houses, onClose }: Props) {
       weekend: h.base_price_weekend,
       guest_comment: h.guest_comment ?? "",
       sutochno_ical_url: h.sutochno_ical_url ?? "",
+      cian_ical_url: h.cian_ical_url ?? "",
     }))
   );
   const [saving, setSaving] = useState(false);
@@ -46,7 +47,7 @@ export default function PriceSettings({ houses, onClose }: Props) {
 
   const updateField = (
     id: string,
-    field: "weekday" | "weekend" | "guest_comment" | "sutochno_ical_url",
+    field: "weekday" | "weekend" | "guest_comment" | "sutochno_ical_url" | "cian_ical_url",
     value: number | string
   ) => {
     setPrices((prev) =>
@@ -65,6 +66,7 @@ export default function PriceSettings({ houses, onClose }: Props) {
             base_price_weekend: p.weekend,
             guest_comment: p.guest_comment,
             sutochno_ical_url: p.sutochno_ical_url.trim(),
+            cian_ical_url: p.cian_ical_url.trim(),
           })
           .eq("id", p.id);
         if (error) throw error;
