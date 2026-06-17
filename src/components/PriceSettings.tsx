@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Copy, Check } from "lucide-react";
 import type { House } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -26,6 +26,22 @@ export default function PriceSettings({ houses, onClose }: Props) {
     }))
   );
   const [saving, setSaving] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string) || "";
+  const icalUrl = (house: string) =>
+    `${supabaseUrl}/functions/v1/export-ical?house=${house}`;
+
+  const copyUrl = async (key: string, url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedKey(key);
+      toast.success("Ссылка скопирована");
+      setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 2000);
+    } catch {
+      toast.error("Не удалось скопировать");
+    }
+  };
 
   const updateField = (
     id: string,
@@ -130,6 +146,64 @@ export default function PriceSettings({ houses, onClose }: Props) {
       <Button className="mt-6 w-full" onClick={handleSave} disabled={saving}>
         {saving ? "Сохранение..." : "Сохранить"}
       </Button>
+
+      <div className="mt-8 rounded-2xl bg-card p-4 border border-border/50 space-y-3">
+        <div>
+          <h2 className="font-semibold text-sm">Синхронизация календарей (iCal)</h2>
+          <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+            Ваш календарь — единый источник данных. Вставьте эти ссылки в импорт календаря
+            на Авито, Циан и Суточно.ру — все ручные блокировки и брони появятся на всех
+            площадках автоматически (обновление 10–60 мин).
+          </p>
+        </div>
+
+        {[
+          { house: "green", label: "Дом GREEN", dot: "bg-house-green" },
+          { house: "black", label: "Дом BLACK", dot: "bg-house-black" },
+        ].map(({ house, label, dot }) => {
+          const url = icalUrl(house);
+          const isCopied = copiedKey === house;
+          return (
+            <div key={house} className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className={`h-3 w-3 rounded-full ${dot}`} />
+                <span className="text-xs font-medium">{label}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={url}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="text-[11px] font-mono h-9"
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => copyUrl(house, url)}
+                  aria-label="Скопировать ссылку"
+                >
+                  {isCopied ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="text-[11px] text-muted-foreground leading-snug pt-1 border-t border-border/40">
+          <p className="font-medium text-foreground/80 mb-1">Куда вставлять:</p>
+          <ul className="space-y-0.5 list-disc pl-4">
+            <li>Авито — Личный кабинет → Календарь → Синхронизация → Импорт iCal</li>
+            <li>Циан — Объявление → Календарь → Синхронизация календарей → Добавить ссылку</li>
+            <li>Суточно.ру — Объект → Календарь → iCal-синхронизация → Импорт</li>
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }
