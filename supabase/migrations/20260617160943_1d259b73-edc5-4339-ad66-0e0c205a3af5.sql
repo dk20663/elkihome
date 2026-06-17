@@ -1,0 +1,3 @@
+ALTER TABLE public.houses ADD COLUMN IF NOT EXISTS cian_ical_url text NOT NULL DEFAULT '';
+UPDATE public.houses SET cian_ical_url = 'https://www.cian.ru/calendar/ical/calendars/310982511_a6fbcf52-1825-4caa-b32f-63870b4bc29f.ics' WHERE name = 'GREEN';
+UPDATE public.houses SET cian_ical_url = 'https://www.cian.ru/calendar/ical/calendars/310982577_25f36a36-bb9e-4ae4-b333-c8eaf19a9c2e.ics' WHERE name = 'BLACK';
