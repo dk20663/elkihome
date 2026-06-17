@@ -5,6 +5,7 @@ export interface House {
   base_price_weekday: number;
   base_price_weekend: number;
   guest_comment?: string;
+  sutochno_ical_url?: string;
   created_at: string;
 }
 
