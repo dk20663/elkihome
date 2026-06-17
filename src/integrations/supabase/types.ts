@@ -135,6 +135,7 @@ export type Database = {
           guest_comment: string
           id: string
           name: string
+          sutochno_ical_url: string
         }
         Insert: {
           base_price_weekday?: number
@@ -144,6 +145,7 @@ export type Database = {
           guest_comment?: string
           id?: string
           name: string
+          sutochno_ical_url?: string
         }
         Update: {
           base_price_weekday?: number
@@ -153,6 +155,7 @@ export type Database = {
           guest_comment?: string
           id?: string
           name?: string
+          sutochno_ical_url?: string
         }
         Relationships: []
       }

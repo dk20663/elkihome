@@ -23,6 +23,7 @@ export default function PriceSettings({ houses, onClose }: Props) {
       weekday: h.base_price_weekday,
       weekend: h.base_price_weekend,
       guest_comment: h.guest_comment ?? "",
+      sutochno_ical_url: h.sutochno_ical_url ?? "",
     }))
   );
   const [saving, setSaving] = useState(false);
@@ -45,7 +46,7 @@ export default function PriceSettings({ houses, onClose }: Props) {
 
   const updateField = (
     id: string,
-    field: "weekday" | "weekend" | "guest_comment",
+    field: "weekday" | "weekend" | "guest_comment" | "sutochno_ical_url",
     value: number | string
   ) => {
     setPrices((prev) =>
@@ -63,6 +64,7 @@ export default function PriceSettings({ houses, onClose }: Props) {
             base_price_weekday: p.weekday,
             base_price_weekend: p.weekend,
             guest_comment: p.guest_comment,
+            sutochno_ical_url: p.sutochno_ical_url.trim(),
           })
           .eq("id", p.id);
         if (error) throw error;
@@ -203,6 +205,40 @@ export default function PriceSettings({ houses, onClose }: Props) {
             <li>Суточно.ру — Объект → Календарь → iCal-синхронизация → Импорт</li>
           </ul>
         </div>
+      </div>
+
+      <div className="mt-6 rounded-2xl bg-card p-4 border border-border/50 space-y-3">
+        <div>
+          <h2 className="font-semibold text-sm">Импорт из Суточно.ру</h2>
+          <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+            Ссылки iCal со страницы объекта на Суточно.ру. Брони с этих ссылок
+            автоматически загружаются каждые 30 минут. Оставьте поле пустым,
+            чтобы отключить импорт по дому.
+          </p>
+        </div>
+        {prices.map((p) => (
+          <div key={`sut-${p.id}`} className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span
+                className={`h-3 w-3 rounded-full ${
+                  p.name === "GREEN" ? "bg-house-green" : "bg-house-black"
+                }`}
+              />
+              <span className="text-xs font-medium">Дом {p.name}</span>
+            </div>
+            <Input
+              value={p.sutochno_ical_url}
+              onChange={(e) =>
+                updateField(p.id, "sutochno_ical_url", e.target.value)
+              }
+              placeholder="https://sutochno.ru/calendar/ical/...ics"
+              className="text-[11px] font-mono h-9"
+            />
+          </div>
+        ))}
+        <p className="text-[10px] text-muted-foreground">
+          Не забудьте нажать «Сохранить» вверху.
+        </p>
       </div>
     </div>
   );
