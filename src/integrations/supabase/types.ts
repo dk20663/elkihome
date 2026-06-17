@@ -130,6 +130,7 @@ export type Database = {
         Row: {
           base_price_weekday: number
           base_price_weekend: number
+          cian_ical_url: string
           color: string
           created_at: string
           guest_comment: string
@@ -140,6 +141,7 @@ export type Database = {
         Insert: {
           base_price_weekday?: number
           base_price_weekend?: number
+          cian_ical_url?: string
           color: string
           created_at?: string
           guest_comment?: string
@@ -150,6 +152,7 @@ export type Database = {
         Update: {
           base_price_weekday?: number
           base_price_weekend?: number
+          cian_ical_url?: string
           color?: string
           created_at?: string
           guest_comment?: string
