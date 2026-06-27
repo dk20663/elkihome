@@ -4,11 +4,11 @@ import { ru } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CalendarGrid from "./CalendarGrid";
-import HouseFilter from "./HouseFilter";
 import GuestPriceDetail from "./GuestPriceDetail";
 import { supabase } from "@/integrations/supabase/client";
 import { loadSnapshot, readCachedSnapshot } from "@/lib/snapshot";
-import type { House, HouseFilter as HouseFilterType, Booking, HousePricing } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import type { House, Booking, HousePricing } from "@/lib/types";
 
 const VISITOR_ID_KEY = "elkihome_visitor_id";
 const LAST_VISIT_DATE_KEY = "elkihome_last_visit_date";
@@ -25,9 +25,11 @@ interface Props {
   hideBack?: boolean;
 }
 
+type SelectedHouse = "green" | "black" | null;
+
 export default function GuestView({ onBack, hideBack = false }: Props) {
   const [month, setMonth] = useState(new Date());
-  const [filter, setFilter] = useState<HouseFilterType>("all");
+  const [selectedHouse, setSelectedHouse] = useState<SelectedHouse>(null);
 
   // Мгновенный рендер из локального кэша снапшота
   const cached = readCachedSnapshot();
@@ -40,8 +42,6 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showPrice, setShowPrice] = useState(false);
 
-  // Один запрос — статический snapshot.json с того же CDN, что и виджет.
-  // Никаких обращений к Supabase / Cloudflare Worker из браузера.
   useEffect(() => {
     let cancelled = false;
     loadSnapshot().then((snap) => {
@@ -63,7 +63,6 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
     };
   }, []);
 
-  // Трекинг посетителя — write-only, не блокирует UI, тихо игнорируется при недоступности Supabase
   useEffect(() => {
     const trackVisit = async () => {
       const today = getLocalDateKey(new Date());
@@ -84,7 +83,7 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
           localStorage.setItem(LAST_VISIT_DATE_KEY, today);
         }
       } catch {
-        /* ignore — аналитика не критична */
+        /* ignore */
       }
     };
     trackVisit();
@@ -95,34 +94,108 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
     setShowPrice(true);
   };
 
-  return (
-    <div className="min-h-screen bg-background p-4 flex flex-col lg:max-w-5xl max-w-md mx-auto">
-      <div className="flex items-center gap-2 mb-4">
+  // ============ Экран выбора дома ============
+  if (!selectedHouse) {
+    return (
+      <div className="min-h-screen bg-background p-4 flex flex-col lg:max-w-3xl max-w-md mx-auto">
         {!hideBack && (
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          <div className="mb-2">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </div>
         )}
-        <div>
-          <h1 className="text-lg font-bold leading-tight">Календарь загрузки</h1>
-          <p className="text-sm font-medium text-foreground/70">
-            Нажмите на дату, чтобы увидеть цены
+        <div className="flex-1 flex flex-col justify-center py-8">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl lg:text-3xl font-bold mb-2">Выберите дом</h1>
+            <p className="text-sm lg:text-base text-muted-foreground">
+              Чтобы посмотреть свободные даты и цены
+            </p>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {(["green", "black"] as const).map((h) => {
+              const isGreen = h === "green";
+              return (
+                <button
+                  key={h}
+                  onClick={() => setSelectedHouse(h)}
+                  className={cn(
+                    "group relative overflow-hidden rounded-3xl p-8 lg:p-10 text-left transition-all hover:scale-[1.02] active:scale-[0.99] shadow-lg hover:shadow-xl",
+                    isGreen
+                      ? "bg-house-green text-white"
+                      : "bg-house-black text-white"
+                  )}
+                >
+                  <div className="text-xs uppercase tracking-widest opacity-80 mb-2">
+                    Дом
+                  </div>
+                  <div className="text-4xl lg:text-5xl font-black tracking-tight mb-4">
+                    {isGreen ? "GREEN" : "BLACK"}
+                  </div>
+                  <div className="text-sm opacity-90">
+                    Смотреть календарь →
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground mt-8">
+            Вы сможете в любой момент вернуться и выбрать другой дом
           </p>
         </div>
       </div>
+    );
+  }
 
-      <div className="mb-3">
-        <HouseFilter value={filter} onChange={setFilter} />
+  // ============ Экран календаря выбранного дома ============
+  const houseLabel = selectedHouse === "green" ? "GREEN" : "BLACK";
+  const isGreen = selectedHouse === "green";
+
+  return (
+    <div className="min-h-screen bg-background p-4 flex flex-col lg:max-w-5xl max-w-md mx-auto">
+      {/* Заметная кнопка возврата к выбору дома */}
+      <button
+        onClick={() => setSelectedHouse(null)}
+        className="flex items-center gap-2 mb-3 px-4 py-2.5 rounded-xl bg-secondary hover:bg-secondary/70 transition-colors text-sm font-semibold text-foreground self-start"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Назад к выбору дома
+      </button>
+
+      {/* Крупный заголовок текущего дома */}
+      <div
+        className={cn(
+          "rounded-2xl p-4 mb-4 flex items-center gap-3 shadow-sm",
+          isGreen ? "bg-house-green text-white" : "bg-house-black text-white"
+        )}
+      >
+        <div className="flex-1">
+          <div className="text-[11px] uppercase tracking-widest opacity-80">
+            Календарь дома
+          </div>
+          <div className="text-2xl lg:text-3xl font-black tracking-tight">
+            {houseLabel}
+          </div>
+        </div>
+        <p className="text-xs opacity-90 max-w-[140px] text-right hidden sm:block">
+          Нажмите на дату, чтобы увидеть цены
+        </p>
       </div>
+
+      <p className="text-xs text-muted-foreground text-center mb-3 sm:hidden">
+        Нажмите на дату, чтобы увидеть цены
+      </p>
 
       <div className="flex items-center justify-between mb-3">
         <Button variant="ghost" size="icon" onClick={() => setMonth(subMonths(month, 1))}>
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <span className="text-sm font-semibold capitalize flex items-center gap-1.5">
+        <span className="text-base font-bold capitalize flex items-center gap-1.5">
           {format(month, "LLLL yyyy", { locale: ru })}
           {isRefreshing && (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-label="Обновление данных" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-label="Обновление" />
           )}
         </span>
         <Button variant="ghost" size="icon" onClick={() => setMonth(addMonths(month, 1))}>
@@ -135,7 +208,7 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
           month={month}
           bookings={bookings}
           houses={houses}
-          filter={filter}
+          filter={selectedHouse}
           onDateClick={handleDateClick}
           selectedRange={{ start: null, end: null }}
           isPublicView
@@ -144,23 +217,30 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
         />
       </div>
 
-      <div className="flex gap-4 justify-center mt-4 text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <span className="font-bold text-house-green text-sm leading-none">✓</span> свободно
+      <div className="flex gap-6 justify-center mt-4 text-sm text-foreground/80">
+        <span className="flex items-center gap-1.5">
+          <span className="text-lg leading-none">✅</span>
+          <span className="font-medium">свободно</span>
         </span>
-        <span className="flex items-center gap-1">
-          <span className="text-destructive text-sm leading-none">🔒</span> занято
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="font-bold text-house-green">G</span>
-          <span className="font-bold text-foreground/80">B</span> — дома
+        <span className="flex items-center gap-1.5">
+          <span className="text-lg leading-none">🔒</span>
+          <span className="font-medium">занято</span>
         </span>
       </div>
+
+      {/* Дублирующая кнопка возврата внизу для длинных страниц */}
+      <button
+        onClick={() => setSelectedHouse(null)}
+        className="mt-6 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-border hover:bg-secondary transition-colors text-sm font-semibold"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Назад к выбору дома
+      </button>
 
       <GuestPriceDetail
         date={selectedDate}
         houses={houses}
-        filter={filter}
+        filter={selectedHouse}
         open={showPrice}
         onClose={() => setShowPrice(false)}
         bookings={bookings}
