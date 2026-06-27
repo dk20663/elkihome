@@ -144,15 +144,16 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
         />
       </div>
 
-      <div className="flex gap-3 justify-center mt-4 text-[10px] text-muted-foreground">
+      <div className="flex gap-4 justify-center mt-4 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded bg-house-green" /> GREEN
+          <span className="font-bold text-house-green text-sm leading-none">✓</span> свободно
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded bg-house-black" /> BLACK
+          <span className="text-destructive text-sm leading-none">🔒</span> занято
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded bg-background border border-border" /> Свободно
+          <span className="font-bold text-house-green">G</span>
+          <span className="font-bold text-foreground/80">B</span> — дома
         </span>
       </div>
 
