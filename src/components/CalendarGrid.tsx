@@ -193,6 +193,58 @@ export default function CalendarGrid({
             );
           }
 
+          // Guest/public view: explicit per-house status with icons (no color-coded background)
+          if (isPublicView) {
+            const showGreen = filter === "all" || filter === "green";
+            const showBlack = filter === "all" || filter === "black";
+            const renderRow = (label: "GREEN" | "BLACK", booked: boolean) => (
+              <span className="flex items-center gap-[2px] leading-none">
+                <span
+                  className={cn(
+                    "font-bold tracking-tight text-[8px] lg:text-[11px]",
+                    label === "GREEN" ? "text-house-green" : "text-foreground/80"
+                  )}
+                >
+                  {label === "GREEN" ? "G" : "B"}
+                </span>
+                {booked ? (
+                  <span className="text-[9px] lg:text-[12px] leading-none text-destructive" aria-label="занят">🔒</span>
+                ) : (
+                  <span className="text-[10px] lg:text-[13px] leading-none font-bold text-house-green" aria-label="свободен">✓</span>
+                )}
+              </span>
+            );
+            return (
+              <button
+                key={day.toISOString()}
+                onClick={() => inMonth && onDateClick(day)}
+                disabled={!inMonth}
+                className={cn(
+                  "relative flex flex-col items-center justify-center gap-[2px] lg:gap-1 aspect-square rounded-[var(--radius)] transition-all",
+                  !inMonth && "opacity-20 pointer-events-none",
+                  inMonth && "hover:bg-secondary",
+                  inMonth && isWeekend && "bg-muted/40",
+                  isCurrentDay && "calendar-today-outline",
+                  isRefreshing && "calendar-cell-refreshing"
+                )}
+                aria-label={`${format(day, "d MMMM")}: GREEN ${greenBooked ? "занят" : "свободен"}, BLACK ${blackBooked ? "занят" : "свободен"}`}
+              >
+                <span
+                  className={cn(
+                    "font-semibold leading-none text-[11px] lg:text-base",
+                    isCurrentDay && "text-primary"
+                  )}
+                >
+                  {format(day, "d")}
+                </span>
+                <span className="flex flex-col items-center gap-[1px] lg:gap-[2px]">
+                  {showGreen && renderRow("GREEN", greenBooked)}
+                  {showBlack && renderRow("BLACK", blackBooked)}
+                </span>
+              </button>
+            );
+          }
+
           const hasCancelled = !isPublicView && dayBookings.some((b) => b.cancelled);
 
           const isInRange =
