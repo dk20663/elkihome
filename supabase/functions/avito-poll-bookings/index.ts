@@ -62,12 +62,15 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Pull all realty ads that have a chain with trigger_on_booking = true
+  // Pull all realty ads that have a chain with trigger_on_booking = true.
+  // Лимит — защита от перерасхода Avito Realty API (≈1000 req/h на токен):
+  // при росте числа объявлений берём не более 25 за запуск (=750/час макс).
   const { data: ads } = await sb
     .from("avito_ads")
     .select("item_id, chain_id, category")
     .eq("category", "realty")
-    .not("chain_id", "is", null);
+    .not("chain_id", "is", null)
+    .limit(25);
 
   const results: any[] = [];
   for (const ad of ads ?? []) {

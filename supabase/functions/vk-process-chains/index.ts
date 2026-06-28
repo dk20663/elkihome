@@ -4,6 +4,9 @@ import { admin, corsHeaders, sendVkMessage } from "../_shared/vk.ts";
 
 const HOUR_MS = 60 * 60 * 1000;
 const KEYWORD_LOOKBACK = 3;
+// VK messages.send: лимит ~20/сек на токен сообщества.
+// Безопасный буфер — 250 мс между чатами (= 4 msg/sec пиково).
+const INTER_PEER_DELAY_MS = 250;
 
 function pickVariant(text: string): string {
   const parts = text.split("|||").map((p) => p.trim()).filter(Boolean);
@@ -33,7 +36,13 @@ Deno.serve(async (req) => {
 
   const results: any[] = [];
 
+  let peerIndex = 0;
   for (const initialState of due ?? []) {
+    if (peerIndex > 0) {
+      // Глобальный rate-limit между peer'ами (защита от лимита 20 msg/sec VK).
+      await new Promise((r) => setTimeout(r, INTER_PEER_DELAY_MS));
+    }
+    peerIndex++;
     let state = initialState;
 
     if (
