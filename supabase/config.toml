@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.avito-process-chains]
 verify_jwt = false
+
+[functions.avito-poll-bookings]
+verify_jwt = false
