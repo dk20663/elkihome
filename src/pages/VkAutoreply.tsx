@@ -394,19 +394,25 @@ function StepEditor({ step, index }: { step: Step; index: number }) {
   const [local, setLocal] = useState<Step>(step);
   useEffect(() => setLocal(step), [step.id]);
 
+  const parsedKeywords = local.keywordsRaw !== undefined
+    ? local.keywordsRaw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)
+    : local.keyword_triggers;
+
   const dirty = !eq(
-    { t: local.text, d: local.delay_minutes, k: local.keyword_triggers, s: local.stop_on_client_reply },
+    { t: local.text, d: local.delay_minutes, k: parsedKeywords, s: local.stop_on_client_reply },
     { t: step.text, d: step.delay_minutes, k: step.keyword_triggers, s: step.stop_on_client_reply },
   );
 
   const save = async () => {
-    const { error } = await supabase.from("vk_autoreply_steps").update({
+    const payload = {
       text: local.text,
       delay_minutes: local.delay_minutes,
-      keyword_triggers: local.keyword_triggers,
+      keyword_triggers: parsedKeywords,
       stop_on_client_reply: local.stop_on_client_reply,
-    }).eq("id", step.id);
+    };
+    const { error } = await supabase.from("vk_autoreply_steps").update(payload).eq("id", step.id);
     if (error) return toast.error(error.message);
+    setLocal({ ...local, keyword_triggers: parsedKeywords, keywordsRaw: parsedKeywords.join(", ") });
     qc.invalidateQueries({ queryKey: ["vk-steps", step.chain_id] });
     toast.success("Шаг сохранён");
   };
