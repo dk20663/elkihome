@@ -180,14 +180,14 @@ Deno.serve(async (req) => {
         break;
       }
 
-      const text = pickVariant(step.text);
+      const text = pickVariant(activeStep.text);
       const res = await sendChatMessage(selfId, state.chat_id, text);
       const status = res.ok ? "sent" : "error";
       await sb.from("avito_message_log").insert({
         chat_id: state.chat_id,
         item_id: state.item_id,
         chain_id: state.chain_id,
-        step_id: step.id,
+        step_id: activeStep.id,
         step_index: state.current_step,
         text,
         status,
