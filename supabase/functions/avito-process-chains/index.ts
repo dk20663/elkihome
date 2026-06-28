@@ -51,7 +51,13 @@ Deno.serve(async (req) => {
 
   const results: any[] = [];
 
+  let chatIndex = 0;
   for (const initialState of due ?? []) {
+    if (chatIndex > 0) {
+      // Глобальный rate-limit между чатами: защита от анти-спам Avito.
+      await new Promise((r) => setTimeout(r, INTER_CHAT_DELAY_MS));
+    }
+    chatIndex++;
     let state = initialState;
 
     // hourly per-chat cap
