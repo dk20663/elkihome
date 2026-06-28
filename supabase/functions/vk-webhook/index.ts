@@ -41,7 +41,33 @@ Deno.serve(async (req) => {
 
   // Confirmation handshake
   if (body.type === "confirmation") {
-    const code = acc?.confirmation_string ?? "";
+    let code = (acc?.confirmation_string ?? "").trim();
+    const incomingGroupId = Number(body.group_id ?? 0);
+
+    // Auto-fetch code from VK API if we have a token but no saved code
+    if (!code && acc?.access_token && incomingGroupId) {
+      try {
+        const url = new URL("https://api.vk.com/method/groups.getCallbackConfirmationCode");
+        url.searchParams.set("group_id", String(incomingGroupId));
+        url.searchParams.set("access_token", acc.access_token);
+        url.searchParams.set("v", acc.api_version || "5.199");
+        const r = await fetch(url.toString(), { method: "POST" });
+        const j = await r.json().catch(() => null);
+        const fetched = j?.response?.code as string | undefined;
+        if (fetched) {
+          code = fetched;
+          const sb = admin();
+          await sb
+            .from("vk_account")
+            .update({
+              confirmation_string: fetched,
+              group_id: acc.group_id ?? incomingGroupId,
+            })
+            .eq("id", acc.id);
+        }
+      } catch (_) { /* ignore — will return empty */ }
+    }
+
     return new Response(code, {
       status: 200,
       headers: { "Content-Type": "text/plain" },
