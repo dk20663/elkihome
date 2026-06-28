@@ -8,6 +8,10 @@ import {
 
 const HOUR_MS = 60 * 60 * 1000;
 const KEYWORD_LOOKBACK = 3; // analyze last N client messages
+// Avito Messenger рекомендует ≤1 сообщения/сек на аккаунт.
+// Между отправками РАЗНЫМ чатам выдерживаем небольшую паузу,
+// чтобы пакет из 20 due-чатов не выглядел как спам-бёрст.
+const INTER_CHAT_DELAY_MS = 1100;
 
 function pickVariant(text: string): string {
   const parts = text.split("|||").map((p) => p.trim()).filter(Boolean);
