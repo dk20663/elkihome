@@ -362,6 +362,12 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
   const [local, setLocal] = useState(chain);
   useEffect(() => setLocal(chain), [chain.id]);
 
+  const chainDirty = JSON.stringify({
+    n: local.name, c: local.category, a: local.is_active, r: local.retrigger_after_days, t: local.trigger_on_booking,
+  }) !== JSON.stringify({
+    n: chain.name, c: chain.category, a: chain.is_active, r: chain.retrigger_after_days, t: chain.trigger_on_booking,
+  });
+
   const { data: steps = [] } = useQuery({
     queryKey: ["steps", chain.id],
     queryFn: async () => {
@@ -449,7 +455,7 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
             </div>
           </div>
         )}
-        <Button size="sm" onClick={saveChain}><Save className="h-4 w-4 mr-1" />Сохранить настройки</Button>
+        <Button size="sm" onClick={saveChain} variant={chainDirty ? "default" : "secondary"} disabled={!chainDirty}><Save className="h-4 w-4 mr-1" />{chainDirty ? "Сохранить настройки" : "Сохранено"}</Button>
       </div>
 
       <div className="space-y-3">
@@ -472,6 +478,11 @@ function StepEditor({ step, index, category }: { step: Step; index: number; cate
   useEffect(() => setLocal(step), [step.id]);
 
   const issues = lintText(local.text, category);
+  const stepDirty = JSON.stringify({
+    t: local.text, d: local.delay_minutes, k: local.keyword_triggers, s: local.stop_on_client_reply,
+  }) !== JSON.stringify({
+    t: step.text, d: step.delay_minutes, k: step.keyword_triggers, s: step.stop_on_client_reply,
+  });
 
   const save = async () => {
     const { error } = await supabase.from("autoreply_steps").update({
@@ -536,7 +547,7 @@ function StepEditor({ step, index, category }: { step: Step; index: number; cate
         <Switch checked={local.stop_on_client_reply} onCheckedChange={(v) => setLocal({ ...local, stop_on_client_reply: v })} />
         <Label className="text-xs">Останавливать цепочку, если клиент ответил</Label>
       </div>
-      <Button size="sm" onClick={save}><Save className="h-4 w-4 mr-1" /> Сохранить шаг</Button>
+      <Button size="sm" onClick={save} variant={stepDirty ? "default" : "secondary"} disabled={!stepDirty}><Save className="h-4 w-4 mr-1" /> {stepDirty ? "Сохранить шаг" : "Сохранено"}</Button>
     </div>
   );
 }
