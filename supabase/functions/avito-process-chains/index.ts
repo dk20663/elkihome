@@ -130,6 +130,35 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Idempotency: never send the same step twice in this chat.
+      const { count: alreadySent } = await sb
+        .from("avito_message_log")
+        .select("id", { count: "exact", head: true })
+        .eq("chat_id", state.chat_id)
+        .eq("step_id", step.id)
+        .eq("status", "sent");
+      if ((alreadySent ?? 0) > 0) {
+        const nextIdx = state.current_step + 1;
+        const nextStep = steps[nextIdx];
+        const patch: Record<string, unknown> = { current_step: nextIdx };
+        if (!nextStep) {
+          patch.chain_completed_at = new Date().toISOString();
+          patch.next_run_at = null;
+          await sb.from("avito_chat_state").update(patch).eq("id", state.id);
+          break;
+        }
+        if (nextStep.delay_minutes === 0) {
+          await sb.from("avito_chat_state").update({ current_step: nextIdx }).eq("id", state.id);
+          state = { ...state, current_step: nextIdx };
+          continue;
+        }
+        patch.next_run_at = new Date(
+          Date.now() + nextStep.delay_minutes * 60_000 + jitterMs(),
+        ).toISOString();
+        await sb.from("avito_chat_state").update(patch).eq("id", state.id);
+        break;
+      }
+
       const text = pickVariant(step.text);
       const res = await sendChatMessage(selfId, state.chat_id, text);
       const status = res.ok ? "sent" : "error";
