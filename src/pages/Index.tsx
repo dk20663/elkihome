@@ -293,6 +293,9 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/avito-autoreply")} title="Автоответы Авито">
             <MessageSquare className="h-4 w-4" />
           </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/vk-autoreply")} title="Автоответы ВКонтакте">
+            <span className="text-[11px] font-bold">VK</span>
+          </Button>
           <VisitorCounter />
 
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
