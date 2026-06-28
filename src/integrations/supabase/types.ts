@@ -470,6 +470,205 @@ export type Database = {
         }
         Relationships: []
       }
+      vk_account: {
+        Row: {
+          access_token: string | null
+          api_version: string
+          callback_secret: string | null
+          confirmation_string: string | null
+          created_at: string
+          group_id: number | null
+          group_screen_name: string | null
+          id: string
+          updated_at: string
+          webhook_registered_at: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          api_version?: string
+          callback_secret?: string | null
+          confirmation_string?: string | null
+          created_at?: string
+          group_id?: number | null
+          group_screen_name?: string | null
+          id?: string
+          updated_at?: string
+          webhook_registered_at?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          api_version?: string
+          callback_secret?: string | null
+          confirmation_string?: string | null
+          created_at?: string
+          group_id?: number | null
+          group_screen_name?: string | null
+          id?: string
+          updated_at?: string
+          webhook_registered_at?: string | null
+        }
+        Relationships: []
+      }
+      vk_autoreply_chains: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          retrigger_after_days: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          retrigger_after_days?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          retrigger_after_days?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vk_autoreply_steps: {
+        Row: {
+          chain_id: string
+          created_at: string
+          delay_minutes: number
+          id: string
+          keyword_triggers: string[]
+          order_index: number
+          stop_on_client_reply: boolean
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          chain_id: string
+          created_at?: string
+          delay_minutes?: number
+          id?: string
+          keyword_triggers?: string[]
+          order_index: number
+          stop_on_client_reply?: boolean
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          chain_id?: string
+          created_at?: string
+          delay_minutes?: number
+          id?: string
+          keyword_triggers?: string[]
+          order_index?: number
+          stop_on_client_reply?: boolean
+          text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vk_autoreply_steps_chain_id_fkey"
+            columns: ["chain_id"]
+            isOneToOne: false
+            referencedRelation: "vk_autoreply_chains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vk_chat_state: {
+        Row: {
+          chain_completed_at: string | null
+          chain_id: string | null
+          chain_started_at: string | null
+          client_replied_at: string | null
+          created_at: string
+          current_step: number
+          id: string
+          last_auto_sent_at: string | null
+          last_client_message_at: string | null
+          next_run_at: string | null
+          peer_id: number
+          updated_at: string
+        }
+        Insert: {
+          chain_completed_at?: string | null
+          chain_id?: string | null
+          chain_started_at?: string | null
+          client_replied_at?: string | null
+          created_at?: string
+          current_step?: number
+          id?: string
+          last_auto_sent_at?: string | null
+          last_client_message_at?: string | null
+          next_run_at?: string | null
+          peer_id: number
+          updated_at?: string
+        }
+        Update: {
+          chain_completed_at?: string | null
+          chain_id?: string | null
+          chain_started_at?: string | null
+          client_replied_at?: string | null
+          created_at?: string
+          current_step?: number
+          id?: string
+          last_auto_sent_at?: string | null
+          last_client_message_at?: string | null
+          next_run_at?: string | null
+          peer_id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vk_chat_state_chain_id_fkey"
+            columns: ["chain_id"]
+            isOneToOne: false
+            referencedRelation: "vk_autoreply_chains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vk_message_log: {
+        Row: {
+          chain_id: string | null
+          error: string | null
+          id: string
+          peer_id: number
+          sent_at: string
+          status: Database["public"]["Enums"]["avito_message_status"]
+          step_id: string | null
+          step_index: number | null
+          text: string
+        }
+        Insert: {
+          chain_id?: string | null
+          error?: string | null
+          id?: string
+          peer_id: number
+          sent_at?: string
+          status: Database["public"]["Enums"]["avito_message_status"]
+          step_id?: string | null
+          step_index?: number | null
+          text: string
+        }
+        Update: {
+          chain_id?: string | null
+          error?: string | null
+          id?: string
+          peer_id?: number
+          sent_at?: string
+          status?: Database["public"]["Enums"]["avito_message_status"]
+          step_id?: string | null
+          step_index?: number | null
+          text?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       public_bookings_view: {
