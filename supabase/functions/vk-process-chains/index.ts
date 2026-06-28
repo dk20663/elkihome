@@ -36,7 +36,13 @@ Deno.serve(async (req) => {
 
   const results: any[] = [];
 
+  let peerIndex = 0;
   for (const initialState of due ?? []) {
+    if (peerIndex > 0) {
+      // Глобальный rate-limit между peer'ами (защита от лимита 20 msg/sec VK).
+      await new Promise((r) => setTimeout(r, INTER_PEER_DELAY_MS));
+    }
+    peerIndex++;
     let state = initialState;
 
     if (
