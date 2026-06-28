@@ -381,6 +381,7 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
       category: local.category,
       is_active: local.is_active,
       retrigger_after_days: local.retrigger_after_days,
+      trigger_on_booking: local.trigger_on_booking,
     }).eq("id", chain.id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["chains"] });
