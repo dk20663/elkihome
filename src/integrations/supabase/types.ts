@@ -14,6 +14,246 @@ export type Database = {
   }
   public: {
     Tables: {
+      autoreply_chains: {
+        Row: {
+          category: Database["public"]["Enums"]["avito_ad_category"]
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          retrigger_after_days: number | null
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["avito_ad_category"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          retrigger_after_days?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["avito_ad_category"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          retrigger_after_days?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      autoreply_steps: {
+        Row: {
+          chain_id: string
+          created_at: string
+          delay_minutes: number
+          id: string
+          keyword_triggers: string[]
+          order_index: number
+          stop_on_client_reply: boolean
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          chain_id: string
+          created_at?: string
+          delay_minutes?: number
+          id?: string
+          keyword_triggers?: string[]
+          order_index: number
+          stop_on_client_reply?: boolean
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          chain_id?: string
+          created_at?: string
+          delay_minutes?: number
+          id?: string
+          keyword_triggers?: string[]
+          order_index?: number
+          stop_on_client_reply?: boolean
+          text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autoreply_steps_chain_id_fkey"
+            columns: ["chain_id"]
+            isOneToOne: false
+            referencedRelation: "autoreply_chains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      avito_account: {
+        Row: {
+          access_token: string | null
+          avito_user_id: number | null
+          created_at: string
+          id: string
+          token_expires_at: string | null
+          updated_at: string
+          webhook_registered_at: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          avito_user_id?: number | null
+          created_at?: string
+          id?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          webhook_registered_at?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          avito_user_id?: number | null
+          created_at?: string
+          id?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          webhook_registered_at?: string | null
+        }
+        Relationships: []
+      }
+      avito_ads: {
+        Row: {
+          category: Database["public"]["Enums"]["avito_ad_category"]
+          chain_id: string | null
+          created_at: string
+          id: string
+          item_id: number
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["avito_ad_category"]
+          chain_id?: string | null
+          created_at?: string
+          id?: string
+          item_id: number
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["avito_ad_category"]
+          chain_id?: string | null
+          created_at?: string
+          id?: string
+          item_id?: number
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avito_ads_chain_id_fkey"
+            columns: ["chain_id"]
+            isOneToOne: false
+            referencedRelation: "autoreply_chains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      avito_chat_state: {
+        Row: {
+          chain_completed_at: string | null
+          chain_id: string | null
+          chain_started_at: string | null
+          chat_id: string
+          client_replied_at: string | null
+          created_at: string
+          current_step: number
+          id: string
+          item_id: number | null
+          last_auto_sent_at: string | null
+          last_client_message_at: string | null
+          next_run_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          chain_completed_at?: string | null
+          chain_id?: string | null
+          chain_started_at?: string | null
+          chat_id: string
+          client_replied_at?: string | null
+          created_at?: string
+          current_step?: number
+          id?: string
+          item_id?: number | null
+          last_auto_sent_at?: string | null
+          last_client_message_at?: string | null
+          next_run_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          chain_completed_at?: string | null
+          chain_id?: string | null
+          chain_started_at?: string | null
+          chat_id?: string
+          client_replied_at?: string | null
+          created_at?: string
+          current_step?: number
+          id?: string
+          item_id?: number | null
+          last_auto_sent_at?: string | null
+          last_client_message_at?: string | null
+          next_run_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avito_chat_state_chain_id_fkey"
+            columns: ["chain_id"]
+            isOneToOne: false
+            referencedRelation: "autoreply_chains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      avito_message_log: {
+        Row: {
+          chain_id: string | null
+          chat_id: string
+          error: string | null
+          id: string
+          item_id: number | null
+          sent_at: string
+          status: Database["public"]["Enums"]["avito_message_status"]
+          step_id: string | null
+          step_index: number | null
+          text: string
+        }
+        Insert: {
+          chain_id?: string | null
+          chat_id: string
+          error?: string | null
+          id?: string
+          item_id?: number | null
+          sent_at?: string
+          status: Database["public"]["Enums"]["avito_message_status"]
+          step_id?: string | null
+          step_index?: number | null
+          text: string
+        }
+        Update: {
+          chain_id?: string | null
+          chat_id?: string
+          error?: string | null
+          id?: string
+          item_id?: number | null
+          sent_at?: string
+          status?: Database["public"]["Enums"]["avito_message_status"]
+          step_id?: string | null
+          step_index?: number | null
+          text?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           bath_brooms: boolean
@@ -211,7 +451,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      avito_ad_category: "realty" | "services"
+      avito_message_status: "sent" | "blocked" | "error" | "skipped"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -338,6 +579,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      avito_ad_category: ["realty", "services"],
+      avito_message_status: ["sent", "blocked", "error", "skipped"],
+    },
   },
 } as const

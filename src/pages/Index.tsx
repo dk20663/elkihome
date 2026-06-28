@@ -1,7 +1,9 @@
 import { useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { format, addMonths, subMonths, parseISO, isSameDay, isAfter, isBefore } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, LogOut, Settings, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, LogOut, Settings, Download, MessageSquare } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import CalendarGrid from "@/components/CalendarGrid";
 import HouseFilter from "@/components/HouseFilter";
@@ -52,7 +54,9 @@ export default function Index() {
 }
 
 function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
+  const navigate = useNavigate();
   const { user, telegramUser, loading: authLoading, signOut } = useAuth();
+
 
   const { data: houses = [], isLoading: housesLoading } = useHouses();
   const { data: bookings = [], isLoading: bookingsLoading, isRefreshing: bookingsRefreshing } = useBookings();
@@ -286,7 +290,11 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowPriceSettings(true)} title="Настройки цен">
             <Settings className="h-4 w-4" />
           </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/avito-autoreply")} title="Автоответы Авито">
+            <MessageSquare className="h-4 w-4" />
+          </Button>
           <VisitorCounter />
+
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
             signOut();
             onBackToRoles();

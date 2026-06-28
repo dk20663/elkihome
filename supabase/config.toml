@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.export-ical]
 verify_jwt = false
+
+[functions.avito-webhook]
+verify_jwt = false
+
+[functions.avito-process-chains]
+verify_jwt = false
