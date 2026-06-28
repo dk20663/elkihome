@@ -16,7 +16,7 @@ import { toast } from "sonner";
 type Category = "realty" | "services";
 
 interface Chain { id: string; name: string; category: Category; is_active: boolean; retrigger_after_days: number | null; trigger_on_booking: boolean; }
-interface Step { id: string; chain_id: string; order_index: number; text: string; delay_minutes: number; keyword_triggers: string[]; stop_on_client_reply: boolean; }
+interface Step { id: string; chain_id: string; order_index: number; text: string; delay_minutes: number; keyword_triggers: string[]; stop_on_client_reply: boolean; keywordsRaw?: string; }
 interface Ad { id: string; item_id: number; title: string; category: Category; chain_id: string | null; url: string | null; }
 interface LogRow { id: string; chat_id: string; item_id: number | null; chain_id: string | null; step_index: number | null; text: string; status: string; error: string | null; sent_at: string; }
 
