@@ -520,7 +520,7 @@ function LogsTab() {
     queryKey: ["avito-logs", status],
     queryFn: async () => {
       let q = supabase.from("avito_message_log").select("*").order("sent_at", { ascending: false }).limit(200);
-      if (status !== "all") q = q.eq("status", status);
+      if (status !== "all") q = q.eq("status", status as "sent" | "error" | "skipped" | "blocked");
       const { data, error } = await q;
       if (error) throw error;
       return data as LogRow[];
