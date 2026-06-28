@@ -435,6 +435,20 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
             />
           </div>
         </div>
+        {local.category === "realty" && (
+          <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <Switch
+              checked={local.trigger_on_booking}
+              onCheckedChange={(v) => setLocal({ ...local, trigger_on_booking: v })}
+            />
+            <div className="text-sm">
+              <div className="font-medium">Отправлять первое сообщение сразу после создания заявки на бронирование</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Когда клиент нажимает «Забронировать» на Авито, система сама находит чат и шлёт первый шаг цепочки (без ожидания сообщения клиента). Проверка идёт каждые 2 минуты.
+              </div>
+            </div>
+          </div>
+        )}
         <Button size="sm" onClick={saveChain}><Save className="h-4 w-4 mr-1" />Сохранить настройки</Button>
       </div>
 
