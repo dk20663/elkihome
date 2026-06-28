@@ -1,131 +1,68 @@
-# Двухфазная загрузка календаря (без визуальных скачков)
+# Автоответы Авито — план реализации
 
-## Принцип
+## Что получится у вас на выходе
+- В админке появится новая вкладка **«Автоответы Авито»** с тремя разделами: **Объявления**, **Цепочки**, **Журнал**.
+- Вы сами создаёте цепочки сообщений (шаг 1 → пауза 5 мин → шаг 2 → пауза 1 день → шаг 3 …), задаёте ключевые слова для шагов и привязываете цепочку к одному или нескольким объявлениям.
+- При новом сообщении на Авито система сама запускает нужную цепочку. Если клиент ответил — цепочка останавливается. Если молчит долго — может запуститься повторно (настраивается).
+- Все отправки видны в журнале.
 
-Phase 1 и Phase 2 возвращают **один и тот же тип** `Booking[]` с **одинаковыми полями, важными для раскраски**. Phase 2 — это надмножество Phase 1 (добавляет PII / цены / услуги, но id и occupancy-поля идентичны). Грид работает только с occupancy-полями → подмена данных невидима.
+## Ограничения Авито, заложенные в систему
+- В цепочках для категории **«Недвижимость»** при сохранении шага система предупреждает (но не запрещает) о ссылках, телефонах, `@username` — Авито их фильтрует.
+- В категории **«Организация отдыха»** валидация выключена, но предупреждение можно включить вручную.
+- Авито рассылает webhook на наш сервер при каждом новом сообщении — задержка обычно 1–3 секунды.
 
-```text
-Phase 1 (~100–200 мс, без auth)
-  public_bookings_view → Booking[] (occupancy-only, остальные поля = пустые плейсхолдеры)
-       ↓
-  setBookings(phase1)                  ← цвета появляются
-       ↓
-Phase 2 (после auth, ~500 мс)
-  bookings (full)      → Booking[] (полные данные)
-       ↓
-  setBookings(phase2)                  ← бесшовно, цвета не меняются
-```
+---
 
-## Гарантия консистентности
+## Что вам останется сделать руками (один раз)
+1. В ЛК Авито (`avito.ru/professionals/api`) получить `client_id` и `client_secret`.
+2. Сохранить их через кнопку **«Подключить Авито»** в новой вкладке — я сделаю безопасную форму. Секреты лягут в Supabase Secrets, не в код.
+3. Нажать «Узнать мой Avito user_id» (один запрос к API) — он подтянется автоматически.
+4. Нажать «Зарегистрировать webhook» — однократно, после этого Авито начнёт слать события.
+5. Импортировать 4 объявления кнопкой «Загрузить из Авито» и проставить категорию (`Недвижимость` / `Отдых`).
 
-### Единая нормализация
-Создать **одну функцию** `normalizeBooking(raw, source)` в `src/lib/bookingNormalize.ts`:
+---
 
-```ts
-export function normalizeBooking(raw: any): Booking {
-  return {
-    id: raw.id,
-    house_id: raw.house_id,
-    check_in: raw.check_in,
-    check_out: raw.check_out,
-    cancelled: raw.cancelled ?? false,
-    synced_from: raw.synced_from ?? null,
-    // плейсхолдеры — заполняются Phase 2
-    guest_name: raw.guest_name ?? "",
-    guest_phone: raw.guest_phone ?? "",
-    comment: raw.comment ?? "",
-    source: raw.source ?? "",
-    guest_count: raw.guest_count ?? 0,
-    sauna: raw.sauna ?? false,
-    plunge_pool: raw.plunge_pool ?? false,
-    bath_brooms: raw.bath_brooms ?? false,
-    fir_infusion: raw.fir_infusion ?? false,
-    citrus_infusion: raw.citrus_infusion ?? false,
-    total_price: raw.total_price ?? 0,
-    manual_override: raw.manual_override ?? false,
-    external_uid: raw.external_uid ?? null,
-    created_by: raw.created_by ?? null,
-    created_at: raw.created_at ?? "",
-    updated_at: raw.updated_at ?? "",
-    houses: raw.houses ?? null,
-  };
-}
-```
+## Технические детали
 
-Используется и в Phase 1 (`public_bookings_view`), и в Phase 2 (`bookings`), и в `prefetch.ts` гостя. Дублирование исчезает.
+### Новые таблицы (миграция 1)
+- `avito_account` — один аккаунт: `avito_user_id`, кэш `access_token`, `token_expires_at`. Секреты `AVITO_CLIENT_ID/SECRET` — в Supabase Secrets.
+- `avito_ads` — `item_id` (Avito), `title`, `category` enum `realty|services`, `chain_id` FK.
+- `autoreply_chains` — `name`, `category`, `is_active`, `retrigger_after_days` (NULL = только первое сообщение).
+- `autoreply_steps` — `chain_id`, `order_index`, `text`, `delay_minutes` (от предыдущего шага), `keyword_triggers` text[] (если задано — шаг шлётся только при совпадении), `stop_on_client_reply` bool.
+- `avito_chat_state` — `chat_id`, `item_id`, `chain_id`, `current_step`, `next_run_at`, `client_replied_at`, `last_client_message_at`.
+- `avito_message_log` — `chat_id`, `item_id`, `step_id`, `text`, `status` (`sent|blocked|error`), `error`, `sent_at`.
 
-### Одинаковая фильтрация в `CalendarGrid`
-Грид уже считает занятость по `id`, `house_id`, `check_in`, `check_out`, `cancelled`, `synced_from`. Эти поля **обязательно** есть в обеих фазах и приходят из одного и того же источника правды (БД). → Логика занятости автоматически совпадает.
+RLS: только `authenticated` (админка). Edge-функции работают через `service_role`.
 
-### Отсутствие "перекрашивания"
-Условие отсутствия скачка: для брони с тем же `id` все occupancy-поля в Phase 2 = тем же значениям, что в Phase 1. Так как обе фазы читают **ту же таблицу `bookings`** (view — это просто `SELECT` подмножества колонок), значения идентичны. Дополнительно: при подмене сохраняем те же `id` → React-keys стабильны → никаких re-mount эффектов.
+### Edge Functions
+- `avito-webhook` (verify_jwt=false, без авторизации — публичный URL для Авито) — получает событие, апдейтит `avito_chat_state` (помечает ответ клиента → стопит цепочку; для нового чата — стартует первую цепочку объявления).
+- `avito-process-chains` (cron каждую минуту) — выбирает `avito_chat_state` где `next_run_at <= now() AND client_replied_at IS NULL`, шлёт следующий шаг, пишет в `avito_message_log`, планирует следующий.
+- `avito-token` — выдаёт валидный access_token (refresh при истечении), используется внутренне.
+- `avito-admin` — операции из админки: subscribe webhook, fetch user_id, fetch ads list, send test message.
 
-## Изменения в коде
+### Защита от антибота
+- Случайная задержка ±10–30 сек к `delay_minutes`.
+- Если у шага несколько вариантов текста (через `|` или массив) — выбирается случайный.
+- Лимит: не более 1 авто-сообщения в чат в час (хард-кап в коде).
 
-### 1. `src/lib/bookingNormalize.ts` (новый)
-Единая функция `normalizeBooking` (см. выше).
+### UI (React, существующий стек)
+- `src/pages/AvitoAutoreply.tsx` — точка входа, табы.
+- `src/components/avito/AdsTab.tsx` — таблица 4 объявлений, выпадашка цепочки, групповое назначение.
+- `src/components/avito/ChainsTab.tsx` — список + редактор: drag-and-drop шагов, поля «текст / задержка / ключевые слова», предупреждения по запрещённому контенту для realty.
+- `src/components/avito/LogsTab.tsx` — журнал с фильтрами (объявление, дата, статус).
+- `src/components/avito/ConnectAvito.tsx` — настройка подключения (кнопки subscribe / refresh ads).
 
-### 2. `src/hooks/useBookings.ts`
-Один хук, два запроса под одним ключом данных:
+### Что НЕ делаю (явно)
+- Не делаю мульти-аккаунт Авито (у вас один продавец).
+- Не делаю отправку картинок — только текст (можно добавить позже).
+- Не делаю собственный whitelist OAuth приложения у Авито — используем `client_credentials` от вашего ЛК.
 
-```ts
-export function useBookings() {
-  // Phase 1 — стартует немедленно, без auth
-  const phase1 = useQuery({
-    queryKey: ["bookings", "occupancy"],
-    queryFn: async () => {
-      const { data } = await supabase.from("public_bookings_view").select("*");
-      return (data ?? []).map(normalizeBooking);
-    },
-    staleTime: 0, gcTime: 0,
-  });
+---
 
-  // Phase 2 — после auth
-  const phase2 = useQuery({
-    queryKey: ["bookings", "full", authReady],
-    queryFn: async () => {
-      const { data } = await supabase.from("bookings").select("*, houses(*)").order("check_in");
-      return (data ?? []).map(normalizeBooking);
-    },
-    enabled: authReady,
-    staleTime: 0,
-  });
+## Объём работ
+- 1 миграция БД (6 таблиц + RLS + триггеры updated_at)
+- 4 edge-функции
+- 1 страница + 4 компонента админки
+- Регистрация cron в Supabase
 
-  // Бесшовное слияние: Phase 2 побеждает, иначе Phase 1
-  const data = phase2.data ?? phase1.data ?? [];
-  const isLoading = !phase1.data && !phase2.data;
-  const isRefreshing = !!phase1.data && !phase2.data;
-
-  return { data, isLoading, isRefreshing, error: phase2.error ?? phase1.error };
-}
-```
-
-Realtime-подписка инвалидирует **оба** ключа.
-
-### 3. Гостевой `prefetch.ts`
-Удалить локальную нормализацию-плейсхолдеры — заменить на `normalizeBooking`. Логика SWR гостя остаётся.
-
-### 4. Админский UI (`Index.tsx` / места использования `useBookings`)
-- Раскраска: использует `data` напрямую — без проверок фазы.
-- Действия с деталями (открытие брони, форма): если `isRefreshing && !phase2.data`, при клике показать мини-спиннер до прихода Phase 2 (промис `phase2.refetch()` или ожидание).
-- Заголовок месяца: показывать тот же `Loader2`-спиннер, что у гостя, при `isRefreshing`.
-
-### 5. Без приглушения цветов
-Класс `calendar-cell-refreshing` **не применять** в админ-режиме — данные актуальные, приглушение создавало бы ложный сигнал "устарело". Только спиннер у месяца.
-
-## Что это даёт
-
-| | Сейчас | После |
-|---|---|---|
-| Цвета занятости | ~800–1500 мс | ~100–200 мс |
-| Визуальные скачки | — | Нет (id и occupancy-поля идентичны между фазами) |
-| Дублирование маппинга | в `prefetch.ts` руками | Единая `normalizeBooking` |
-| Кэш админа | нет | нет (оба запроса свежие) |
-
-## Файлы
-
-- `src/lib/bookingNormalize.ts` — новый
-- `src/hooks/useBookings.ts` — рефакторинг (две query, слияние)
-- `src/lib/prefetch.ts` — использовать `normalizeBooking`
-- Места, читающие `useBookings()`: обновить деструктуризацию (`{ data, isLoading, isRefreshing }` вместо `data`/`isLoading` от useQuery)
-- `src/components/CalendarGrid.tsx` — пробросить `isRefreshing` только как индикатор у заголовка (без `calendar-cell-refreshing` для админа)
+Подтвердите план — начну с миграции и edge-функций, затем UI.
