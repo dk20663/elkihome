@@ -340,14 +340,18 @@ function ChainsTab() {
         </div>
       </div>
       <div>
-        {selected ? (
-          <ChainEditor
-            chain={chains.find((c) => c.id === selected)!}
-            onDelete={() => deleteChain.mutate(selected)}
-          />
-        ) : (
-          <p className="text-sm text-muted-foreground">Выберите или создайте цепочку.</p>
-        )}
+        {(() => {
+          const current = selected ? chains.find((c) => c.id === selected) : undefined;
+          return current ? (
+            <ChainEditor
+              key={current.id}
+              chain={current}
+              onDelete={() => deleteChain.mutate(current.id)}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">Выберите или создайте цепочку.</p>
+          );
+        })()}
       </div>
     </div>
   );
