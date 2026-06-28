@@ -100,42 +100,63 @@ Deno.serve(async (req) => {
         break;
       }
 
-      // keyword filter against last N client messages
+      // Keyword scan: collect a contiguous group of keyword-only steps starting at current_step,
+      // then pick the first one whose keyword matches the client haystack AND that hasn't been sent yet.
       if (step.keyword_triggers && step.keyword_triggers.length > 0) {
-        const hit = step.keyword_triggers.some((kw: string) =>
-          clientHaystack.includes(kw.toLowerCase())
+        const groupStart = state.current_step;
+        let groupEnd = groupStart;
+        while (
+          groupEnd < steps.length &&
+          steps[groupEnd].keyword_triggers &&
+          steps[groupEnd].keyword_triggers.length > 0
+        ) {
+          groupEnd++;
+        }
+        const group = steps.slice(groupStart, groupEnd); // all keyword steps in this run
+
+        // Which of these have already been sent in this chat?
+        const groupIds = group.map((s: any) => s.id);
+        const { data: sentRows } = await sb
+          .from("avito_message_log")
+          .select("step_id")
+          .eq("chat_id", state.chat_id)
+          .eq("status", "sent")
+          .in("step_id", groupIds);
+        const sentSet = new Set((sentRows ?? []).map((r: any) => r.step_id));
+
+        // Pick first candidate (in order) whose keyword matched.
+        const matched = group.find((s: any) =>
+          !sentSet.has(s.id) &&
+          s.keyword_triggers.some((kw: string) =>
+            clientHaystack.includes(kw.toLowerCase())
+          )
         );
-        if (!hit) {
-          const nextIdx = state.current_step + 1;
-          const nextStep = steps[nextIdx];
-          // Skip to next step immediately if it has no delay, otherwise schedule.
-          const patch: Record<string, unknown> = { current_step: nextIdx };
-          if (!nextStep) {
-            patch.chain_completed_at = new Date().toISOString();
-            patch.next_run_at = null;
-            await sb.from("avito_chat_state").update(patch).eq("id", state.id);
-            break;
-          }
-          if (nextStep.delay_minutes === 0) {
-            // continue inner loop without rescheduling
-            await sb.from("avito_chat_state").update({ current_step: nextIdx }).eq("id", state.id);
-            state = { ...state, current_step: nextIdx };
-            continue;
-          }
-          patch.next_run_at = new Date(
-            Date.now() + nextStep.delay_minutes * 60_000 + jitterMs(),
-          ).toISOString();
-          await sb.from("avito_chat_state").update(patch).eq("id", state.id);
+
+        if (!matched) {
+          // No match now. Wait for the next client message (webhook will reschedule).
+          // Do NOT advance current_step — earlier keyword steps remain reachable for future messages.
+          await sb.from("avito_chat_state").update({ next_run_at: null }).eq("id", state.id);
           break;
         }
+
+        // Jump current_step to the matched step and let the send/idempotency logic below run.
+        const matchedIdx = groupStart + group.indexOf(matched);
+        if (matchedIdx !== state.current_step) {
+          await sb.from("avito_chat_state").update({ current_step: matchedIdx }).eq("id", state.id);
+          state = { ...state, current_step: matchedIdx };
+        }
+        // Fall through to idempotency + send.
       }
+
+      // Refresh `step` in case the keyword scan moved current_step forward.
+      const activeStep = steps[state.current_step];
 
       // Idempotency: never send the same step twice in this chat.
       const { count: alreadySent } = await sb
         .from("avito_message_log")
         .select("id", { count: "exact", head: true })
         .eq("chat_id", state.chat_id)
-        .eq("step_id", step.id)
+        .eq("step_id", activeStep.id)
         .eq("status", "sent");
       if ((alreadySent ?? 0) > 0) {
         const nextIdx = state.current_step + 1;
@@ -159,14 +180,14 @@ Deno.serve(async (req) => {
         break;
       }
 
-      const text = pickVariant(step.text);
+      const text = pickVariant(activeStep.text);
       const res = await sendChatMessage(selfId, state.chat_id, text);
       const status = res.ok ? "sent" : "error";
       await sb.from("avito_message_log").insert({
         chat_id: state.chat_id,
         item_id: state.item_id,
         chain_id: state.chain_id,
-        step_id: step.id,
+        step_id: activeStep.id,
         step_index: state.current_step,
         text,
         status,
