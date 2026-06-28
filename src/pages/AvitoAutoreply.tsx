@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 type Category = "realty" | "services";
 
-interface Chain { id: string; name: string; category: Category; is_active: boolean; retrigger_after_days: number | null; }
+interface Chain { id: string; name: string; category: Category; is_active: boolean; retrigger_after_days: number | null; trigger_on_booking: boolean; }
 interface Step { id: string; chain_id: string; order_index: number; text: string; delay_minutes: number; keyword_triggers: string[]; stop_on_client_reply: boolean; }
 interface Ad { id: string; item_id: number; title: string; category: Category; chain_id: string | null; url: string | null; }
 interface LogRow { id: string; chat_id: string; item_id: number | null; chain_id: string | null; step_index: number | null; text: string; status: string; error: string | null; sent_at: string; }
@@ -381,6 +381,7 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
       category: local.category,
       is_active: local.is_active,
       retrigger_after_days: local.retrigger_after_days,
+      trigger_on_booking: local.trigger_on_booking,
     }).eq("id", chain.id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["chains"] });
@@ -434,6 +435,20 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
             />
           </div>
         </div>
+        {local.category === "realty" && (
+          <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <Switch
+              checked={local.trigger_on_booking}
+              onCheckedChange={(v) => setLocal({ ...local, trigger_on_booking: v })}
+            />
+            <div className="text-sm">
+              <div className="font-medium">Отправлять первое сообщение сразу после создания заявки на бронирование</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Когда клиент нажимает «Забронировать» на Авито, система сама находит чат и шлёт первый шаг цепочки (без ожидания сообщения клиента). Проверка идёт каждые 2 минуты.
+              </div>
+            </div>
+          </div>
+        )}
         <Button size="sm" onClick={saveChain}><Save className="h-4 w-4 mr-1" />Сохранить настройки</Button>
       </div>
 

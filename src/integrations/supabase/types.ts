@@ -22,6 +22,7 @@ export type Database = {
           is_active: boolean
           name: string
           retrigger_after_days: number | null
+          trigger_on_booking: boolean
           updated_at: string
         }
         Insert: {
@@ -31,6 +32,7 @@ export type Database = {
           is_active?: boolean
           name: string
           retrigger_after_days?: number | null
+          trigger_on_booking?: boolean
           updated_at?: string
         }
         Update: {
@@ -40,6 +42,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           retrigger_after_days?: number | null
+          trigger_on_booking?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -152,6 +155,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "avito_ads_chain_id_fkey"
+            columns: ["chain_id"]
+            isOneToOne: false
+            referencedRelation: "autoreply_chains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      avito_bookings_seen: {
+        Row: {
+          avito_booking_id: number
+          chain_id: string | null
+          chat_id: string | null
+          created_at: string
+          id: string
+          item_id: number | null
+          note: string | null
+          processed_at: string | null
+          status: string
+        }
+        Insert: {
+          avito_booking_id: number
+          chain_id?: string | null
+          chat_id?: string | null
+          created_at?: string
+          id?: string
+          item_id?: number | null
+          note?: string | null
+          processed_at?: string | null
+          status?: string
+        }
+        Update: {
+          avito_booking_id?: number
+          chain_id?: string | null
+          chat_id?: string | null
+          created_at?: string
+          id?: string
+          item_id?: number | null
+          note?: string | null
+          processed_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avito_bookings_seen_chain_id_fkey"
             columns: ["chain_id"]
             isOneToOne: false
             referencedRelation: "autoreply_chains"
