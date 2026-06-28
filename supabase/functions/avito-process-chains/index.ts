@@ -148,13 +148,15 @@ Deno.serve(async (req) => {
         // Fall through to idempotency + send.
       }
 
+      // Refresh `step` in case the keyword scan moved current_step forward.
+      const activeStep = steps[state.current_step];
 
       // Idempotency: never send the same step twice in this chat.
       const { count: alreadySent } = await sb
         .from("avito_message_log")
         .select("id", { count: "exact", head: true })
         .eq("chat_id", state.chat_id)
-        .eq("step_id", step.id)
+        .eq("step_id", activeStep.id)
         .eq("status", "sent");
       if ((alreadySent ?? 0) > 0) {
         const nextIdx = state.current_step + 1;
