@@ -516,10 +516,20 @@ function StepEditor({ step, index, category }: { step: Step; index: number; cate
         <div>
           <Label className="text-xs">Ключевые слова (через запятую, опц.)</Label>
           <Input
-            value={local.keyword_triggers.join(", ")}
-            onChange={(e) => setLocal({ ...local, keyword_triggers: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
-            placeholder="цена, скидка, заезд"
+            value={local.keywordsRaw ?? local.keyword_triggers.join(", ")}
+            onChange={(e) => setLocal({ ...local, keywordsRaw: e.target.value })}
+            onBlur={() => {
+              const parsed = (local.keywordsRaw ?? "")
+                .split(",")
+                .map((s) => s.trim().toLowerCase())
+                .filter(Boolean);
+              setLocal({ ...local, keyword_triggers: parsed, keywordsRaw: parsed.join(", ") });
+            }}
+            placeholder="цена, скидк, заезд, бронь"
           />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Через запятую. Сравнение по подстроке без регистра: «цен» поймает «цена», «цены», «ценник». Оставьте пустым, чтобы шаг шёл всегда.
+          </p>
         </div>
       </div>
       <div className="flex items-center gap-2">
