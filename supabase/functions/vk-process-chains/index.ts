@@ -156,7 +156,10 @@ Deno.serve(async (req) => {
         cursor++;
         continue;
       }
-      if (step.keyword_triggers && step.keyword_triggers.length > 0) {
+      if (
+        step.is_greeting ||
+        (step.keyword_triggers && step.keyword_triggers.length > 0)
+      ) {
         cursor++;
         continue;
       }
