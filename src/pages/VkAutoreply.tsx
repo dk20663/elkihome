@@ -24,7 +24,7 @@ interface VkAccount {
   webhook_registered_at: string | null;
 }
 interface Chain { id: string; name: string; is_active: boolean; retrigger_after_days: number | null; reset_after_days: number; }
-interface Step { id: string; chain_id: string; order_index: number; text: string; delay_minutes: number; keyword_triggers: string[]; stop_on_client_reply: boolean; keywordsRaw?: string; }
+interface Step { id: string; chain_id: string; order_index: number; text: string; delay_minutes: number; keyword_triggers: string[]; stop_on_client_reply: boolean; is_greeting: boolean; keywordsRaw?: string; }
 interface LogRow { id: string; peer_id: number; chain_id: string | null; step_index: number | null; text: string; status: string; error: string | null; sent_at: string; }
 
 async function callAdmin(action: string, body: Record<string, unknown> = {}) {
