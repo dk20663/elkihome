@@ -112,11 +112,13 @@ Deno.serve(async (req) => {
       chain_started_at: chainId ? now.toISOString() : null,
     });
   } else {
-    // Existing chat — client replied. Stop only if the current step explicitly
-    // has stop_on_client_reply; otherwise wake the processor so keyword steps
-    // and due follow-ups can answer this message.
+    // Existing chat — клиент написал сообщение. В новой модели ответ клиента
+    // НЕ останавливает цепочку. Просто будим процессор: он сам решит, какие
+    // keyword-шаги отправить (по совпадению) и продолжит sequential.
     const updates: Record<string, unknown> = {
       last_client_message_at: now.toISOString(),
+      client_replied_at: now.toISOString(),
+      next_run_at: now.toISOString(),
     };
 
     if (!existing.chain_id && chainId) {
@@ -125,27 +127,9 @@ Deno.serve(async (req) => {
       updates.current_step = 0;
       updates.chain_started_at = now.toISOString();
       updates.chain_completed_at = null;
-      updates.client_replied_at = null;
-      updates.next_run_at = now.toISOString();
-    } else if (existing.chain_id && !existing.chain_completed_at) {
-      const { data: currentStep } = await sb
-        .from("autoreply_steps")
-        .select("stop_on_client_reply")
-        .eq("chain_id", existing.chain_id)
-        .order("order_index", { ascending: true })
-        .range(existing.current_step ?? 0, existing.current_step ?? 0)
-        .maybeSingle();
-
-      if (currentStep?.stop_on_client_reply) {
-        updates.client_replied_at = now.toISOString();
-        updates.next_run_at = null;
-      } else {
-        updates.client_replied_at = null;
-        updates.next_run_at = now.toISOString();
-      }
     }
 
-    // Retrigger: if chain is complete and retrigger_after_days passed → restart.
+    // Retrigger: если цепочка завершена и прошло retrigger_after_days — рестарт.
     if (existing.chain_completed_at && existing.chain_id) {
       const { data: chain } = await sb
         .from("autoreply_chains")
@@ -161,8 +145,6 @@ Deno.serve(async (req) => {
           updates.current_step = 0;
           updates.chain_started_at = now.toISOString();
           updates.chain_completed_at = null;
-          updates.client_replied_at = null;
-          updates.next_run_at = now.toISOString();
         }
       }
     }

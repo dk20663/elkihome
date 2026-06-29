@@ -131,15 +131,13 @@ export async function processIncomingVkMessage(
       chain_started_at: chainId ? now.toISOString() : null,
     });
   } else {
+    // В новой модели ответ клиента НЕ блокирует цепочку. Просто будим
+    // процессор: keyword-шаги отработают по совпадению, sequential продолжится.
     const updates: Record<string, unknown> = {
       last_client_message_at: now.toISOString(),
+      client_replied_at: now.toISOString(),
+      next_run_at: now.toISOString(),
     };
-    // Помечаем "клиент ответил" только если мы уже успели отправить хотя бы
-    // один автоответ. Иначе быстрая серия сообщений клиента (2-3 подряд до
-    // срабатывания cron) навсегда блокировала цепочку.
-    if ((existing as any).last_auto_sent_at) {
-      updates.client_replied_at = now.toISOString();
-    }
     if ((existing as any).chain_completed_at && (existing as any).chain_id) {
       const { data: chain } = await sb
         .from("vk_autoreply_chains")
@@ -156,8 +154,6 @@ export async function processIncomingVkMessage(
           updates.current_step = 0;
           updates.chain_started_at = now.toISOString();
           updates.chain_completed_at = null;
-          updates.client_replied_at = null;
-          updates.next_run_at = now.toISOString();
         }
       }
     }

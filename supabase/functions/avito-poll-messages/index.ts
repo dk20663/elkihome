@@ -136,22 +136,12 @@ async function upsertIncomingMessage(params: {
       last_auto_sent_at: null,
     }).eq("id", existing.id);
   } else if (!existing.chain_completed_at && existing.chain_id) {
-    const { data: currentStep } = await sb
-      .from("autoreply_steps")
-      .select("stop_on_client_reply")
-      .eq("chain_id", existing.chain_id)
-      .order("order_index", { ascending: true })
-      .range(existing.current_step ?? 0, existing.current_step ?? 0)
-      .maybeSingle();
-
+    // В новой модели ответ клиента НЕ блокирует цепочку.
+    // Будим процессор: keyword-шаги отработают по совпадению, sequential продолжится.
     await sb.from("avito_chat_state").update({
       last_client_message_at: createdAt.toISOString(),
-      client_replied_at: currentStep?.stop_on_client_reply
-        ? createdAt.toISOString()
-        : null,
-      next_run_at: currentStep?.stop_on_client_reply
-        ? null
-        : createdAt.toISOString(),
+      client_replied_at: createdAt.toISOString(),
+      next_run_at: createdAt.toISOString(),
     }).eq("id", existing.id);
   } else {
     await sb.from("avito_chat_state").update({

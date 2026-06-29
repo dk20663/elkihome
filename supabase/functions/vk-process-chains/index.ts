@@ -1,12 +1,15 @@
 // Cron-driven processor for VK auto-reply chains.
-// Mirrors avito-process-chains logic: keyword group scan, zero-delay chaining, per-step idempotency.
+// Зеркалит avito-process-chains. Модель:
+// 1. Каждый шаг — максимум 1 раз за чат (идемпотентность через vk_message_log).
+// 2. Keyword-шаги срабатывают независимо при совпадении в последних N
+//    клиентских сообщениях.
+// 3. Sequential-шаги (без keyword) идут по порядку через current_step + delay.
+// 4. Ответ клиента НЕ останавливает цепочку.
 import { admin, corsHeaders, sendVkMessage } from "../_shared/vk.ts";
 
-const HOUR_MS = 60 * 60 * 1000;
 const KEYWORD_LOOKBACK = 3;
-// VK messages.send: лимит ~20/сек на токен сообщества.
-// Безопасный буфер — 250 мс между чатами (= 4 msg/sec пиково).
 const INTER_PEER_DELAY_MS = 250;
+const INTER_MSG_DELAY_MS = 800;
 
 function pickVariant(text: string): string {
   const parts = text.split("|||").map((p) => p.trim()).filter(Boolean);
@@ -29,7 +32,6 @@ Deno.serve(async (req) => {
     .from("vk_chat_state")
     .select("*")
     .lte("next_run_at", nowIso)
-    .is("client_replied_at", null)
     .is("chain_completed_at", null)
     .not("chain_id", "is", null)
     .limit(20);
@@ -39,16 +41,10 @@ Deno.serve(async (req) => {
   let peerIndex = 0;
   for (const initialState of due ?? []) {
     if (peerIndex > 0) {
-      // Глобальный rate-limit между peer'ами (защита от лимита 20 msg/sec VK).
       await new Promise((r) => setTimeout(r, INTER_PEER_DELAY_MS));
     }
     peerIndex++;
-    let state = initialState;
-
-    if (
-      state.last_auto_sent_at &&
-      Date.now() - new Date(state.last_auto_sent_at).getTime() < HOUR_MS
-    ) continue;
+    const state = initialState;
 
     const { data: chain } = await sb
       .from("vk_autoreply_chains")
@@ -70,6 +66,15 @@ Deno.serve(async (req) => {
       continue;
     }
 
+    const { data: sentRows } = await sb
+      .from("vk_message_log")
+      .select("step_id")
+      .eq("peer_id", state.peer_id)
+      .eq("status", "sent");
+    const sentSet = new Set(
+      (sentRows ?? []).map((r: any) => r.step_id).filter(Boolean),
+    );
+
     const { data: recentIn } = await sb
       .from("vk_message_log")
       .select("text")
@@ -81,140 +86,107 @@ Deno.serve(async (req) => {
       .map((m) => (m.text ?? "").toLowerCase())
       .join("\n");
 
-    while (true) {
-      const step = steps[state.current_step];
-      if (!step) {
-        await sb.from("vk_chat_state").update({
-          chain_completed_at: new Date().toISOString(),
-          next_run_at: null,
-        }).eq("id", state.id);
-        break;
-      }
-
-      if (step.keyword_triggers && step.keyword_triggers.length > 0) {
-        const groupStart = state.current_step;
-        let groupEnd = groupStart;
-        while (
-          groupEnd < steps.length &&
-          steps[groupEnd].keyword_triggers &&
-          steps[groupEnd].keyword_triggers.length > 0
-        ) {
-          groupEnd++;
-        }
-        const group = steps.slice(groupStart, groupEnd);
-        const groupIds = group.map((s: any) => s.id);
-        const { data: sentRows } = await sb
-          .from("vk_message_log")
-          .select("step_id")
-          .eq("peer_id", state.peer_id)
-          .eq("status", "sent")
-          .in("step_id", groupIds);
-        const sentSet = new Set((sentRows ?? []).map((r: any) => r.step_id));
-
-        const matched = group.find((s: any) =>
-          !sentSet.has(s.id) &&
-          s.keyword_triggers.some((kw: string) =>
-            clientHaystack.includes(kw.toLowerCase())
-          )
-        );
-
-        if (!matched) {
-          await sb.from("vk_chat_state").update({ next_run_at: null }).eq("id", state.id);
-          break;
-        }
-
-        const matchedIdx = groupStart + group.indexOf(matched);
-        if (matchedIdx !== state.current_step) {
-          await sb.from("vk_chat_state").update({ current_step: matchedIdx }).eq("id", state.id);
-          state = { ...state, current_step: matchedIdx };
-        }
-      }
-
-      const activeStep = steps[state.current_step];
-
-      const { count: alreadySent } = await sb
-        .from("vk_message_log")
-        .select("id", { count: "exact", head: true })
-        .eq("peer_id", state.peer_id)
-        .eq("step_id", activeStep.id)
-        .eq("status", "sent");
-      if ((alreadySent ?? 0) > 0) {
-        const nextIdx = state.current_step + 1;
-        const nextStep = steps[nextIdx];
-        const patch: Record<string, unknown> = { current_step: nextIdx };
-        if (!nextStep) {
-          patch.chain_completed_at = new Date().toISOString();
-          patch.next_run_at = null;
-          await sb.from("vk_chat_state").update(patch).eq("id", state.id);
-          break;
-        }
-        if (nextStep.delay_minutes === 0) {
-          await sb.from("vk_chat_state").update({ current_step: nextIdx }).eq("id", state.id);
-          state = { ...state, current_step: nextIdx };
-          continue;
-        }
-        patch.next_run_at = new Date(
-          Date.now() + nextStep.delay_minutes * 60_000 + jitterMs(),
-        ).toISOString();
-        await sb.from("vk_chat_state").update(patch).eq("id", state.id);
-        break;
-      }
-
-      const text = pickVariant(activeStep.text);
+    const sendStep = async (step: any) => {
+      const text = pickVariant(step.text);
       const res = await sendVkMessage(Number(state.peer_id), text);
       const status = res.ok ? "sent" : "error";
       await sb.from("vk_message_log").insert({
         peer_id: state.peer_id,
         chain_id: state.chain_id,
-        step_id: activeStep.id,
-        step_index: state.current_step,
+        step_id: step.id,
+        step_index: step.order_index,
         text,
         status,
         error: res.ok ? null : `${res.status}: ${res.body}`,
       });
-
-      if (!res.ok) {
+      if (res.ok) {
+        sentSet.add(step.id);
         await sb.from("vk_chat_state").update({
-          next_run_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+          last_auto_sent_at: new Date().toISOString(),
         }).eq("id", state.id);
-        results.push({ peer: state.peer_id, status });
+      }
+      results.push({ peer: state.peer_id, step: step.order_index, status });
+      return res.ok;
+    };
+
+    // Phase A: keyword steps
+    if (clientHaystack) {
+      for (const step of steps) {
+        if (!step.keyword_triggers || step.keyword_triggers.length === 0) continue;
+        if (sentSet.has(step.id)) continue;
+        const matched = step.keyword_triggers.some((kw: string) =>
+          clientHaystack.includes(String(kw).toLowerCase())
+        );
+        if (!matched) continue;
+        const ok = await sendStep(step);
+        if (!ok) {
+          await sb.from("vk_chat_state").update({
+            next_run_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+          }).eq("id", state.id);
+          break;
+        }
+        await new Promise((r) => setTimeout(r, INTER_MSG_DELAY_MS));
+      }
+    }
+
+    // Phase B: sequential steps
+    let cursor = state.current_step ?? 0;
+    let nextRunAt: string | null = null;
+    let completed = false;
+    let errored = false;
+
+    while (true) {
+      const step = steps[cursor];
+      if (!step) {
+        completed = true;
         break;
       }
-
-      results.push({ peer: state.peer_id, status });
-
-      const nextIdx = state.current_step + 1;
-      const nextStep = steps[nextIdx];
-      const nowMs = Date.now();
-      const patch: Record<string, unknown> = {
-        current_step: nextIdx,
-        last_auto_sent_at: new Date(nowMs).toISOString(),
-      };
-      if (!nextStep) {
-        patch.chain_completed_at = new Date(nowMs).toISOString();
-        patch.next_run_at = null;
-        await sb.from("vk_chat_state").update(patch).eq("id", state.id);
-        break;
-      }
-
-      if (nextStep.delay_minutes === 0) {
-        patch.next_run_at = new Date(nowMs).toISOString();
-        await sb.from("vk_chat_state").update(patch).eq("id", state.id);
-        state = {
-          ...state,
-          current_step: nextIdx,
-          last_auto_sent_at: patch.last_auto_sent_at as string,
-        };
-        await new Promise((r) => setTimeout(r, 800));
+      if (sentSet.has(step.id)) {
+        cursor++;
         continue;
       }
-
-      patch.next_run_at = new Date(
-        nowMs + nextStep.delay_minutes * 60_000 + jitterMs(),
-      ).toISOString();
-      await sb.from("vk_chat_state").update(patch).eq("id", state.id);
+      if (step.keyword_triggers && step.keyword_triggers.length > 0) {
+        cursor++;
+        continue;
+      }
+      const ok = await sendStep(step);
+      if (!ok) {
+        await sb.from("vk_chat_state").update({
+          current_step: cursor,
+          next_run_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+        }).eq("id", state.id);
+        errored = true;
+        break;
+      }
+      cursor++;
+      const nextStep = steps[cursor];
+      if (
+        nextStep &&
+        (!nextStep.keyword_triggers || nextStep.keyword_triggers.length === 0)
+      ) {
+        if ((nextStep.delay_minutes ?? 0) > 0) {
+          nextRunAt = new Date(
+            Date.now() + nextStep.delay_minutes * 60_000 + jitterMs(),
+          ).toISOString();
+          break;
+        }
+        await new Promise((r) => setTimeout(r, INTER_MSG_DELAY_MS));
+        continue;
+      }
       break;
     }
+
+    if (errored) continue;
+
+    const allSent = steps.every((s: any) => sentSet.has(s.id));
+    const patch: Record<string, unknown> = { current_step: cursor };
+    if (completed || allSent) {
+      patch.chain_completed_at = new Date().toISOString();
+      patch.next_run_at = null;
+    } else {
+      patch.next_run_at = nextRunAt;
+    }
+    await sb.from("vk_chat_state").update(patch).eq("id", state.id);
   }
 
   return new Response(JSON.stringify({ ok: true, processed: results.length, results }), {
