@@ -97,86 +97,8 @@ Deno.serve(async (req) => {
   if (!peerId || isOutgoing) {
     return new Response("ok");
   }
-  // Messages sent by the group itself: from_id is negative (-group_id).
-  if (fromId < 0) {
-    return new Response("ok");
-  }
 
-  const sb = admin();
-  const now = new Date();
-
-  // Find the single active chain (one community → one active chain).
-  const { data: activeChain } = await sb
-    .from("vk_autoreply_chains")
-    .select("id")
-    .eq("is_active", true)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const chainId = activeChain?.id ?? null;
-
-  const { data: existing } = await sb
-    .from("vk_chat_state")
-    .select("*")
-    .eq("peer_id", peerId)
-    .maybeSingle();
-
-  if (!existing) {
-    let firstDelayMs = 0;
-    if (chainId) {
-      const { data: step0 } = await sb
-        .from("vk_autoreply_steps")
-        .select("delay_minutes")
-        .eq("chain_id", chainId)
-        .order("order_index", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      firstDelayMs = (step0?.delay_minutes ?? 0) * 60_000;
-    }
-    await sb.from("vk_chat_state").insert({
-      peer_id: peerId,
-      chain_id: chainId,
-      current_step: 0,
-      next_run_at: chainId
-        ? new Date(now.getTime() + firstDelayMs).toISOString()
-        : null,
-      last_client_message_at: now.toISOString(),
-      chain_started_at: chainId ? now.toISOString() : null,
-    });
-  } else {
-    const updates: Record<string, unknown> = {
-      last_client_message_at: now.toISOString(),
-      client_replied_at: now.toISOString(),
-    };
-    if (existing.chain_completed_at && existing.chain_id) {
-      const { data: chain } = await sb
-        .from("vk_autoreply_chains")
-        .select("retrigger_after_days")
-        .eq("id", existing.chain_id)
-        .maybeSingle();
-      const days = chain?.retrigger_after_days ?? null;
-      if (days && existing.last_client_message_at) {
-        const elapsedDays =
-          (now.getTime() - new Date(existing.last_client_message_at).getTime()) /
-          86_400_000;
-        if (elapsedDays >= days) {
-          updates.current_step = 0;
-          updates.chain_started_at = now.toISOString();
-          updates.chain_completed_at = null;
-          updates.client_replied_at = null;
-          updates.next_run_at = now.toISOString();
-        }
-      }
-    }
-    await sb.from("vk_chat_state").update(updates).eq("peer_id", peerId);
-  }
-
-  await sb.from("vk_message_log").insert({
-    peer_id: peerId,
-    chain_id: chainId,
-    text: `[вх. от клиента] ${text.slice(0, 200)}`,
-    status: "skipped",
-  });
+  await processIncomingVkMessage(peerId, fromId, text);
 
   return new Response("ok", { status: 200, headers: { "Content-Type": "text/plain" } });
 });
