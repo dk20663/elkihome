@@ -321,6 +321,7 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
       name: local.name,
       is_active: local.is_active,
       retrigger_after_days: local.retrigger_after_days,
+      reset_after_days: local.reset_after_days,
     }).eq("id", chain.id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["vk-chains"] });
