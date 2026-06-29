@@ -10,7 +10,8 @@ import {
 
 const MAX_ADS_PER_RUN = 25;
 const MAX_CHATS_PER_AD = 20;
-const RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const MAX_MESSAGES_PER_CHAT = 10;
+const RECENT_WINDOW_MS = 2 * 60 * 60 * 1000;
 
 type AdRow = {
   item_id: number | string;
@@ -64,14 +65,15 @@ async function listChatsForItem(userId: number, itemId: number) {
   return { chats: Array.isArray(json?.chats) ? json.chats : [], error: null };
 }
 
-async function getLastMessage(userId: number, chatId: string) {
+async function getRecentMessages(userId: number, chatId: string) {
   const r = await avitoFetch(
-    `/messenger/v3/accounts/${userId}/chats/${chatId}/messages?limit=1`,
+    `/messenger/v3/accounts/${userId}/chats/${chatId}/messages?limit=${MAX_MESSAGES_PER_CHAT}`,
   );
-  if (!r.ok) return null;
+  if (!r.ok) return [];
   const json = await r.json().catch(() => ({}));
-  const messages = Array.isArray(json?.messages) ? json.messages : [];
-  return (messages[0] ?? null) as Record<string, unknown> | null;
+  return (Array.isArray(json?.messages) ? json.messages : []) as Array<
+    Record<string, unknown>
+  >;
 }
 
 async function firstStepRunAt(chainId: string, fallback: Date) {
@@ -200,16 +202,35 @@ Deno.serve(async (req) => {
       if (!chatId || seenChats.has(chatId)) continue;
       seenChats.add(chatId);
 
-      const lastMessage = await getLastMessage(selfId, chatId);
-      if (!lastMessage) continue;
+      const messages = await getRecentMessages(selfId, chatId);
+      if (messages.length === 0) continue;
 
-      const authorId = getAuthorId(lastMessage);
-      if (!authorId || authorId === selfId) continue;
+      const withTime = messages
+        .map((message) => ({ message, createdMs: getMessageCreatedMs(message) }))
+        .filter((row): row is { message: Record<string, unknown>; createdMs: number } =>
+          row.createdMs !== null
+        )
+        .sort((a, b) => b.createdMs - a.createdMs);
 
-      const createdMs = getMessageCreatedMs(lastMessage);
+      const latestClient = withTime.find((row) => {
+        const authorId = getAuthorId(row.message);
+        return Boolean(authorId && authorId !== selfId);
+      });
+      if (!latestClient) continue;
+
+      // If the seller/admin already replied after the latest client message,
+      // do not send a late duplicate autoreply. Normal polling will catch the
+      // client message first when it runs every minute.
+      const sellerReplyAfterClient = withTime.some((row) => {
+        const authorId = getAuthorId(row.message);
+        return authorId === selfId && row.createdMs > latestClient.createdMs;
+      });
+      if (sellerReplyAfterClient) continue;
+
+      const createdMs = latestClient.createdMs;
       if (!createdMs || nowMs - createdMs > RECENT_WINDOW_MS) continue;
 
-      const text = getMessageText(lastMessage);
+      const text = getMessageText(latestClient.message);
       const queued = await upsertIncomingMessage({
         chatId,
         itemId,
