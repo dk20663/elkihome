@@ -86,22 +86,28 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    // Какие шаги уже отправлены (по step_id из лога).
-    const { data: sentRows } = await sb
+    // Какие шаги уже отправлены В ТЕКУЩЕЙ СЕССИИ (после session_started_at).
+    // Старый лог не удаляется, но и не учитывается при сбросе сессии.
+    const sessionStart = state.session_started_at ?? state.chain_started_at ?? state.created_at;
+    let sentQuery = sb
       .from("avito_message_log")
       .select("step_id")
       .eq("chat_id", state.chat_id)
       .eq("status", "sent");
+    if (sessionStart) sentQuery = sentQuery.gte("sent_at", sessionStart);
+    const { data: sentRows } = await sentQuery;
     const sentSet = new Set(
       (sentRows ?? []).map((r: any) => r.step_id).filter(Boolean),
     );
 
-    // Последние N клиентских сообщений (status=skipped — это входящие).
-    const { data: recentIn } = await sb
+    // Последние N клиентских сообщений ТЕКУЩЕЙ сессии.
+    let inQuery = sb
       .from("avito_message_log")
       .select("text")
       .eq("chat_id", state.chat_id)
-      .eq("status", "skipped")
+      .eq("status", "skipped");
+    if (sessionStart) inQuery = inQuery.gte("sent_at", sessionStart);
+    const { data: recentIn } = await inQuery
       .order("sent_at", { ascending: false })
       .limit(KEYWORD_LOOKBACK);
     const clientHaystack = (recentIn ?? [])
