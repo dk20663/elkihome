@@ -180,8 +180,11 @@ Deno.serve(async (req) => {
         cursor++;
         continue;
       }
-      // Keyword-шаги обрабатываются Phase A — не блокируем sequence.
-      if (step.keyword_triggers && step.keyword_triggers.length > 0) {
+      // Keyword-шаги и приветствие обрабатываются Phase A — не блокируем sequence.
+      if (
+        step.is_greeting ||
+        (step.keyword_triggers && step.keyword_triggers.length > 0)
+      ) {
         cursor++;
         continue;
       }
