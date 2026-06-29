@@ -363,9 +363,9 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
   useEffect(() => setLocal(chain), [chain.id]);
 
   const chainDirty = JSON.stringify({
-    n: local.name, c: local.category, a: local.is_active, r: local.retrigger_after_days, t: local.trigger_on_booking,
+    n: local.name, c: local.category, a: local.is_active, r: local.retrigger_after_days, rs: local.reset_after_days, t: local.trigger_on_booking,
   }) !== JSON.stringify({
-    n: chain.name, c: chain.category, a: chain.is_active, r: chain.retrigger_after_days, t: chain.trigger_on_booking,
+    n: chain.name, c: chain.category, a: chain.is_active, r: chain.retrigger_after_days, rs: chain.reset_after_days, t: chain.trigger_on_booking,
   });
 
   const { data: steps = [] } = useQuery({
@@ -387,6 +387,7 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
       category: local.category,
       is_active: local.is_active,
       retrigger_after_days: local.retrigger_after_days,
+      reset_after_days: local.reset_after_days,
       trigger_on_booking: local.trigger_on_booking,
     }).eq("id", chain.id);
     if (error) return toast.error(error.message);
