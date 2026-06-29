@@ -56,10 +56,11 @@ Deno.serve(async (req) => {
         const uid = await getSelfUserId();
         const url = body.webhook_url as string;
         if (!url) return json({ error: "webhook_url required" }, 400);
-        const r = await avitoFetch(
-          `/messenger/v3/accounts/${uid}/subscriptions`,
-          { method: "POST", body: JSON.stringify({ url }) },
-        );
+        // Avito Messenger API v3: POST /messenger/v3/webhook { url }
+        const r = await avitoFetch(`/messenger/v3/webhook`, {
+          method: "POST",
+          body: JSON.stringify({ url }),
+        });
         const text = await r.text();
         if (r.ok) {
           await admin().from("avito_account").update({
@@ -69,12 +70,18 @@ Deno.serve(async (req) => {
         return json({ ok: r.ok, status: r.status, body: text });
       }
       case "unsubscribe": {
-        const uid = await getSelfUserId();
         const url = body.webhook_url as string;
-        const r = await avitoFetch(
-          `/messenger/v1/accounts/${uid}/subscriptions`,
-          { method: "POST", body: JSON.stringify({ url }) },
-        );
+        // Avito Messenger API v1: POST /messenger/v1/webhook/unsubscribe { url }
+        const r = await avitoFetch(`/messenger/v1/webhook/unsubscribe`, {
+          method: "POST",
+          body: JSON.stringify({ url }),
+        });
+        return json({ ok: r.ok, status: r.status, body: await r.text() });
+      }
+      case "list_subscriptions": {
+        const r = await avitoFetch(`/messenger/v1/subscriptions`, {
+          method: "POST",
+        });
         return json({ ok: r.ok, status: r.status, body: await r.text() });
       }
       case "load_ads": {
