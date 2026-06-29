@@ -30,6 +30,9 @@ verify_jwt = false
 [functions.avito-poll-bookings]
 verify_jwt = false
 
+[functions.avito-poll-messages]
+verify_jwt = false
+
 [functions.vk-webhook]
 verify_jwt = false
 
