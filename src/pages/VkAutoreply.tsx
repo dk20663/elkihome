@@ -295,8 +295,8 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
   useEffect(() => setLocal(chain), [chain.id]);
 
   const dirty = !eq(
-    { n: local.name, a: local.is_active, r: local.retrigger_after_days },
-    { n: chain.name, a: chain.is_active, r: chain.retrigger_after_days },
+    { n: local.name, a: local.is_active, r: local.retrigger_after_days, rs: local.reset_after_days },
+    { n: chain.name, a: chain.is_active, r: chain.retrigger_after_days, rs: chain.reset_after_days },
   );
 
   const { data: steps = [] } = useQuery({
