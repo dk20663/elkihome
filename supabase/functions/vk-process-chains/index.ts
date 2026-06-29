@@ -176,6 +176,7 @@ Deno.serve(async (req) => {
       const nextStep = steps[cursor];
       if (
         nextStep &&
+        !nextStep.is_greeting &&
         (!nextStep.keyword_triggers || nextStep.keyword_triggers.length === 0)
       ) {
         if ((nextStep.delay_minutes ?? 0) > 0) {
