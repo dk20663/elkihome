@@ -330,6 +330,7 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
 
   const addStep = async () => {
     const nextIdx = steps.length;
+    const hasGreeting = steps.some((s) => s.is_greeting);
     const { error } = await supabase.from("vk_autoreply_steps").insert({
       chain_id: chain.id,
       order_index: nextIdx,
@@ -337,6 +338,7 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
       delay_minutes: nextIdx === 0 ? 0 : 60,
       keyword_triggers: [],
       stop_on_client_reply: true,
+      is_greeting: !hasGreeting && nextIdx === 0,
     });
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["vk-steps", chain.id] });
