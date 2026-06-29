@@ -139,22 +139,28 @@ Deno.serve(async (req) => {
     };
 
     // --- Phase A: keyword-шаги (любой порядок, по совпадению).
+    // Перед ними — приветствие (если есть и ещё не отправлено в этой сессии).
     if (clientHaystack) {
-      for (const step of steps) {
-        if (!step.keyword_triggers || step.keyword_triggers.length === 0) continue;
-        if (sentSet.has(step.id)) continue;
-        const matched = step.keyword_triggers.some((kw: string) =>
+      const matchedKeywordSteps = steps.filter((step: any) =>
+        step.keyword_triggers && step.keyword_triggers.length > 0 &&
+        !sentSet.has(step.id) &&
+        step.keyword_triggers.some((kw: string) =>
           clientHaystack.includes(String(kw).toLowerCase())
-        );
-        if (!matched) continue;
-        const ok = await sendStep(step);
-        if (!ok) {
-          await sb.from("avito_chat_state").update({
-            next_run_at: new Date(Date.now() + 10 * 60_000).toISOString(),
-          }).eq("id", state.id);
-          break;
+        )
+      );
+      if (matchedKeywordSteps.length > 0) {
+        const greeting = steps.find((s: any) => s.is_greeting && !sentSet.has(s.id));
+        const toSend = greeting ? [greeting, ...matchedKeywordSteps] : matchedKeywordSteps;
+        for (const step of toSend) {
+          const ok = await sendStep(step);
+          if (!ok) {
+            await sb.from("avito_chat_state").update({
+              next_run_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+            }).eq("id", state.id);
+            break;
+          }
+          await new Promise((r) => setTimeout(r, INTER_MSG_DELAY_MS));
         }
-        await new Promise((r) => setTimeout(r, INTER_MSG_DELAY_MS));
       }
     }
 
