@@ -6,7 +6,6 @@ import {
   sendChatMessage,
 } from "../_shared/avito.ts";
 
-const HOUR_MS = 60 * 60 * 1000;
 const KEYWORD_LOOKBACK = 3; // analyze last N client messages
 // Avito Messenger рекомендует ≤1 сообщения/сек на аккаунт.
 // Между отправками РАЗНЫМ чатам выдерживаем небольшую паузу,
@@ -59,12 +58,6 @@ Deno.serve(async (req) => {
     }
     chatIndex++;
     let state = initialState;
-
-    // hourly per-chat cap
-    if (
-      state.last_auto_sent_at &&
-      Date.now() - new Date(state.last_auto_sent_at).getTime() < HOUR_MS
-    ) continue;
 
     const { data: chain } = await sb
       .from("autoreply_chains")

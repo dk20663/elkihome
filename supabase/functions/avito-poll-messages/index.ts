@@ -123,11 +123,35 @@ async function upsertIncomingMessage(params: {
       last_client_message_at: createdAt.toISOString(),
       chain_started_at: createdAt.toISOString(),
     });
+  } else if (!existing.chain_id && chainId) {
+    await sb.from("avito_chat_state").update({
+      item_id: itemId,
+      chain_id: chainId,
+      current_step: 0,
+      next_run_at: await firstStepRunAt(chainId, createdAt),
+      last_client_message_at: createdAt.toISOString(),
+      client_replied_at: null,
+      chain_started_at: createdAt.toISOString(),
+      chain_completed_at: null,
+      last_auto_sent_at: null,
+    }).eq("id", existing.id);
   } else if (!existing.chain_completed_at && existing.chain_id) {
+    const { data: currentStep } = await sb
+      .from("autoreply_steps")
+      .select("stop_on_client_reply")
+      .eq("chain_id", existing.chain_id)
+      .order("order_index", { ascending: true })
+      .range(existing.current_step ?? 0, existing.current_step ?? 0)
+      .maybeSingle();
+
     await sb.from("avito_chat_state").update({
       last_client_message_at: createdAt.toISOString(),
-      client_replied_at: createdAt.toISOString(),
-      next_run_at: null,
+      client_replied_at: currentStep?.stop_on_client_reply
+        ? createdAt.toISOString()
+        : null,
+      next_run_at: currentStep?.stop_on_client_reply
+        ? null
+        : createdAt.toISOString(),
     }).eq("id", existing.id);
   } else {
     await sb.from("avito_chat_state").update({
