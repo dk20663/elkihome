@@ -1,6 +1,6 @@
 // Public VK Callback API endpoint.
 // VK requires plain "ok" (or confirmation code) as the response body within 10 seconds.
-import { admin, corsHeaders, getAccount } from "../_shared/vk.ts";
+import { admin, corsHeaders, getAccount, processIncomingVkMessage } from "../_shared/vk.ts";
 
 interface VkEvent {
   type?: string;
