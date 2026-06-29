@@ -21,6 +21,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          reset_after_days: number
           retrigger_after_days: number | null
           trigger_on_booking: boolean
           updated_at: string
@@ -31,6 +32,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          reset_after_days?: number
           retrigger_after_days?: number | null
           trigger_on_booking?: boolean
           updated_at?: string
@@ -41,6 +43,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          reset_after_days?: number
           retrigger_after_days?: number | null
           trigger_on_booking?: boolean
           updated_at?: string
@@ -220,6 +223,7 @@ export type Database = {
           last_auto_sent_at: string | null
           last_client_message_at: string | null
           next_run_at: string | null
+          session_started_at: string | null
           updated_at: string
         }
         Insert: {
@@ -235,6 +239,7 @@ export type Database = {
           last_auto_sent_at?: string | null
           last_client_message_at?: string | null
           next_run_at?: string | null
+          session_started_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -250,6 +255,7 @@ export type Database = {
           last_auto_sent_at?: string | null
           last_client_message_at?: string | null
           next_run_at?: string | null
+          session_started_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -524,6 +530,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          reset_after_days: number
           retrigger_after_days: number | null
           updated_at: string
         }
@@ -532,6 +539,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          reset_after_days?: number
           retrigger_after_days?: number | null
           updated_at?: string
         }
@@ -540,6 +548,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          reset_after_days?: number
           retrigger_after_days?: number | null
           updated_at?: string
         }
@@ -602,6 +611,7 @@ export type Database = {
           last_client_message_at: string | null
           next_run_at: string | null
           peer_id: number
+          session_started_at: string | null
           updated_at: string
         }
         Insert: {
@@ -616,6 +626,7 @@ export type Database = {
           last_client_message_at?: string | null
           next_run_at?: string | null
           peer_id: number
+          session_started_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -630,6 +641,7 @@ export type Database = {
           last_client_message_at?: string | null
           next_run_at?: string | null
           peer_id?: number
+          session_started_at?: string | null
           updated_at?: string
         }
         Relationships: [

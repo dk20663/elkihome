@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
         : null,
       last_client_message_at: now.toISOString(),
       chain_started_at: chainId ? now.toISOString() : null,
+      session_started_at: now.toISOString(),
     });
   } else {
     // Existing chat — клиент написал сообщение. В новой модели ответ клиента
@@ -126,26 +127,43 @@ Deno.serve(async (req) => {
       updates.item_id = itemId;
       updates.current_step = 0;
       updates.chain_started_at = now.toISOString();
+      updates.session_started_at = now.toISOString();
       updates.chain_completed_at = null;
     }
 
-    // Retrigger: если цепочка завершена и прошло retrigger_after_days — рестарт.
-    if (existing.chain_completed_at && existing.chain_id) {
+    // Авто-сброс сессии: если от последнего сообщения клиента прошло больше
+    // reset_after_days — забываем состояние автоответчика и стартуем заново.
+    // История переписки и логи НЕ удаляются — фильтрация по session_started_at
+    // делает старые записи log невидимыми для процессора.
+    const effectiveChainId = (updates.chain_id as string | undefined) ?? existing.chain_id;
+    if (effectiveChainId && existing.last_client_message_at) {
       const { data: chain } = await sb
         .from("autoreply_chains")
-        .select("retrigger_after_days")
-        .eq("id", existing.chain_id)
+        .select("reset_after_days, retrigger_after_days")
+        .eq("id", effectiveChainId)
         .maybeSingle();
-      const days = chain?.retrigger_after_days ?? null;
-      if (days && existing.last_client_message_at) {
-        const elapsedDays =
-          (now.getTime() - new Date(existing.last_client_message_at).getTime()) /
-          86_400_000;
-        if (elapsedDays >= days) {
-          updates.current_step = 0;
-          updates.chain_started_at = now.toISOString();
-          updates.chain_completed_at = null;
-        }
+      const resetDays = chain?.reset_after_days ?? 30;
+      const elapsedDays =
+        (now.getTime() - new Date(existing.last_client_message_at).getTime()) /
+        86_400_000;
+      if (resetDays > 0 && elapsedDays >= resetDays) {
+        updates.current_step = 0;
+        updates.session_started_at = now.toISOString();
+        updates.chain_started_at = now.toISOString();
+        updates.chain_completed_at = null;
+        updates.last_auto_sent_at = null;
+      } else if (
+        existing.chain_completed_at &&
+        chain?.retrigger_after_days &&
+        elapsedDays >= chain.retrigger_after_days
+      ) {
+        // Legacy retrigger: используется только если цепочка УЖЕ завершена
+        // и reset_after_days не сработал раньше.
+        updates.current_step = 0;
+        updates.session_started_at = now.toISOString();
+        updates.chain_started_at = now.toISOString();
+        updates.chain_completed_at = null;
+        updates.last_auto_sent_at = null;
       }
     }
     await sb.from("avito_chat_state").update(updates).eq("chat_id", chatId);

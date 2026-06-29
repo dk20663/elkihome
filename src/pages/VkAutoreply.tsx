@@ -23,7 +23,7 @@ interface VkAccount {
   api_version: string;
   webhook_registered_at: string | null;
 }
-interface Chain { id: string; name: string; is_active: boolean; retrigger_after_days: number | null; }
+interface Chain { id: string; name: string; is_active: boolean; retrigger_after_days: number | null; reset_after_days: number; }
 interface Step { id: string; chain_id: string; order_index: number; text: string; delay_minutes: number; keyword_triggers: string[]; stop_on_client_reply: boolean; keywordsRaw?: string; }
 interface LogRow { id: string; peer_id: number; chain_id: string | null; step_index: number | null; text: string; status: string; error: string | null; sent_at: string; }
 
@@ -295,8 +295,8 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
   useEffect(() => setLocal(chain), [chain.id]);
 
   const dirty = !eq(
-    { n: local.name, a: local.is_active, r: local.retrigger_after_days },
-    { n: chain.name, a: chain.is_active, r: chain.retrigger_after_days },
+    { n: local.name, a: local.is_active, r: local.retrigger_after_days, rs: local.reset_after_days },
+    { n: chain.name, a: chain.is_active, r: chain.retrigger_after_days, rs: chain.reset_after_days },
   );
 
   const { data: steps = [] } = useQuery({
@@ -321,6 +321,7 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
       name: local.name,
       is_active: local.is_active,
       retrigger_after_days: local.retrigger_after_days,
+      reset_after_days: local.reset_after_days,
     }).eq("id", chain.id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["vk-chains"] });
@@ -362,6 +363,19 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
               onChange={(e) => setLocal({ ...local, retrigger_after_days: e.target.value ? Number(e.target.value) : null })}
               placeholder="не повторять"
             />
+          </div>
+          <div className="sm:col-span-2">
+            <Label className="text-xs">Сброс сессии через N дней</Label>
+            <Input
+              type="number"
+              min={0}
+              value={local.reset_after_days ?? 30}
+              onChange={(e) => setLocal({ ...local, reset_after_days: e.target.value ? Number(e.target.value) : 0 })}
+              placeholder="30"
+            />
+            <div className="text-[11px] text-muted-foreground mt-1">
+              Если клиент не писал больше N дней — новое сообщение стартует цепочку с нуля. История чата не удаляется. 0 = не сбрасывать.
+            </div>
           </div>
         </div>
         <Button

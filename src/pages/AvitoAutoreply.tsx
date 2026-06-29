@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 type Category = "realty" | "services";
 
-interface Chain { id: string; name: string; category: Category; is_active: boolean; retrigger_after_days: number | null; trigger_on_booking: boolean; }
+interface Chain { id: string; name: string; category: Category; is_active: boolean; retrigger_after_days: number | null; reset_after_days: number; trigger_on_booking: boolean; }
 interface Step { id: string; chain_id: string; order_index: number; text: string; delay_minutes: number; keyword_triggers: string[]; stop_on_client_reply: boolean; keywordsRaw?: string; }
 interface Ad { id: string; item_id: number; title: string; category: Category; chain_id: string | null; url: string | null; }
 interface LogRow { id: string; chat_id: string; item_id: number | null; chain_id: string | null; step_index: number | null; text: string; status: string; error: string | null; sent_at: string; }
@@ -363,9 +363,9 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
   useEffect(() => setLocal(chain), [chain.id]);
 
   const chainDirty = JSON.stringify({
-    n: local.name, c: local.category, a: local.is_active, r: local.retrigger_after_days, t: local.trigger_on_booking,
+    n: local.name, c: local.category, a: local.is_active, r: local.retrigger_after_days, rs: local.reset_after_days, t: local.trigger_on_booking,
   }) !== JSON.stringify({
-    n: chain.name, c: chain.category, a: chain.is_active, r: chain.retrigger_after_days, t: chain.trigger_on_booking,
+    n: chain.name, c: chain.category, a: chain.is_active, r: chain.retrigger_after_days, rs: chain.reset_after_days, t: chain.trigger_on_booking,
   });
 
   const { data: steps = [] } = useQuery({
@@ -387,6 +387,7 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
       category: local.category,
       is_active: local.is_active,
       retrigger_after_days: local.retrigger_after_days,
+      reset_after_days: local.reset_after_days,
       trigger_on_booking: local.trigger_on_booking,
     }).eq("id", chain.id);
     if (error) return toast.error(error.message);
@@ -439,6 +440,19 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
               onChange={(e) => setLocal({ ...local, retrigger_after_days: e.target.value ? Number(e.target.value) : null })}
               placeholder="не повторять"
             />
+          </div>
+          <div>
+            <Label className="text-xs">Сброс сессии через N дней</Label>
+            <Input
+              type="number"
+              min={0}
+              value={local.reset_after_days ?? 30}
+              onChange={(e) => setLocal({ ...local, reset_after_days: e.target.value ? Number(e.target.value) : 0 })}
+              placeholder="30"
+            />
+            <div className="text-[11px] text-muted-foreground mt-1">
+              Если клиент не писал больше N дней — новое сообщение стартует цепочку с нуля. История чата не удаляется. 0 = не сбрасывать.
+            </div>
           </div>
         </div>
         {local.category === "realty" && (
