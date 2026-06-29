@@ -56,6 +56,7 @@ export type Database = {
           created_at: string
           delay_minutes: number
           id: string
+          is_greeting: boolean
           keyword_triggers: string[]
           order_index: number
           stop_on_client_reply: boolean
@@ -67,6 +68,7 @@ export type Database = {
           created_at?: string
           delay_minutes?: number
           id?: string
+          is_greeting?: boolean
           keyword_triggers?: string[]
           order_index: number
           stop_on_client_reply?: boolean
@@ -78,6 +80,7 @@ export type Database = {
           created_at?: string
           delay_minutes?: number
           id?: string
+          is_greeting?: boolean
           keyword_triggers?: string[]
           order_index?: number
           stop_on_client_reply?: boolean
@@ -560,6 +563,7 @@ export type Database = {
           created_at: string
           delay_minutes: number
           id: string
+          is_greeting: boolean
           keyword_triggers: string[]
           order_index: number
           stop_on_client_reply: boolean
@@ -571,6 +575,7 @@ export type Database = {
           created_at?: string
           delay_minutes?: number
           id?: string
+          is_greeting?: boolean
           keyword_triggers?: string[]
           order_index: number
           stop_on_client_reply?: boolean
@@ -582,6 +587,7 @@ export type Database = {
           created_at?: string
           delay_minutes?: number
           id?: string
+          is_greeting?: boolean
           keyword_triggers?: string[]
           order_index?: number
           stop_on_client_reply?: boolean
