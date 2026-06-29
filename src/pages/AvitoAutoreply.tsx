@@ -16,7 +16,7 @@ import { toast } from "sonner";
 type Category = "realty" | "services";
 
 interface Chain { id: string; name: string; category: Category; is_active: boolean; retrigger_after_days: number | null; reset_after_days: number; trigger_on_booking: boolean; }
-interface Step { id: string; chain_id: string; order_index: number; text: string; delay_minutes: number; keyword_triggers: string[]; stop_on_client_reply: boolean; keywordsRaw?: string; }
+interface Step { id: string; chain_id: string; order_index: number; text: string; delay_minutes: number; keyword_triggers: string[]; stop_on_client_reply: boolean; is_greeting: boolean; keywordsRaw?: string; }
 interface Ad { id: string; item_id: number; title: string; category: Category; chain_id: string | null; url: string | null; }
 interface LogRow { id: string; chat_id: string; item_id: number | null; chain_id: string | null; step_index: number | null; text: string; status: string; error: string | null; sent_at: string; }
 
@@ -397,6 +397,7 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
 
   const addStep = async () => {
     const nextIdx = steps.length;
+    const hasGreeting = steps.some((s) => s.is_greeting);
     const { error } = await supabase.from("autoreply_steps").insert({
       chain_id: chain.id,
       order_index: nextIdx,
@@ -404,6 +405,7 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
       delay_minutes: nextIdx === 0 ? 0 : 60,
       keyword_triggers: [],
       stop_on_client_reply: true,
+      is_greeting: !hasGreeting && nextIdx === 0,
     });
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["steps", chain.id] });
@@ -497,21 +499,22 @@ function StepEditor({ step, index, category }: { step: Step; index: number; cate
 
   const issues = lintText(local.text, category);
   const stepDirty = JSON.stringify({
-    t: local.text, d: local.delay_minutes, k: parsedKeywords, s: local.stop_on_client_reply,
+    t: local.text, d: local.delay_minutes, k: parsedKeywords, s: local.stop_on_client_reply, g: local.is_greeting,
   }) !== JSON.stringify({
-    t: step.text, d: step.delay_minutes, k: step.keyword_triggers, s: step.stop_on_client_reply,
+    t: step.text, d: step.delay_minutes, k: step.keyword_triggers, s: step.stop_on_client_reply, g: step.is_greeting,
   });
 
   const save = async () => {
     const payload = {
       text: local.text,
       delay_minutes: local.delay_minutes,
-      keyword_triggers: parsedKeywords,
+      keyword_triggers: local.is_greeting ? [] : parsedKeywords,
       stop_on_client_reply: local.stop_on_client_reply,
+      is_greeting: local.is_greeting,
     };
     const { error } = await supabase.from("autoreply_steps").update(payload).eq("id", step.id);
     if (error) return toast.error(error.message);
-    setLocal({ ...local, keyword_triggers: parsedKeywords, keywordsRaw: parsedKeywords.join(", ") });
+    setLocal({ ...local, keyword_triggers: payload.keyword_triggers, keywordsRaw: payload.keyword_triggers.join(", ") });
     qc.invalidateQueries({ queryKey: ["steps", step.chain_id] });
     toast.success("Шаг сохранён");
   };
@@ -522,10 +525,24 @@ function StepEditor({ step, index, category }: { step: Step; index: number; cate
   };
 
   return (
-    <div className="rounded-2xl border p-3 space-y-2">
+    <div className={`rounded-2xl border p-3 space-y-2 ${local.is_greeting ? "border-emerald-300 bg-emerald-50/40" : ""}`}>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold">Шаг {index + 1}</span>
+        <span className="text-xs font-semibold">
+          {local.is_greeting ? "👋 Приветствие" : `Шаг ${index + 1}`}
+        </span>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={remove}><Trash2 className="h-4 w-4" /></Button>
+      </div>
+      <div className="flex items-center gap-2 rounded-md bg-muted/40 p-2">
+        <Switch
+          checked={local.is_greeting}
+          onCheckedChange={(v) => setLocal({ ...local, is_greeting: v })}
+        />
+        <Label className="text-xs">
+          Приветственное сообщение
+          <span className="block text-[11px] text-muted-foreground font-normal">
+            Отправляется один раз за сессию — перед первыми ответами по ключевым словам. В цепочке может быть только одно.
+          </span>
+        </Label>
       </div>
       <Textarea
         rows={3}
@@ -544,24 +561,26 @@ function StepEditor({ step, index, category }: { step: Step; index: number; cate
           <Input type="number" min={0} value={local.delay_minutes}
             onChange={(e) => setLocal({ ...local, delay_minutes: Number(e.target.value) || 0 })}/>
         </div>
-        <div>
-          <Label className="text-xs">Ключевые слова (через запятую, опц.)</Label>
-          <Input
-            value={local.keywordsRaw ?? local.keyword_triggers.join(", ")}
-            onChange={(e) => setLocal({ ...local, keywordsRaw: e.target.value })}
-            onBlur={() => {
-              const parsed = (local.keywordsRaw ?? "")
-                .split(",")
-                .map((s) => s.trim().toLowerCase())
-                .filter(Boolean);
-              setLocal({ ...local, keyword_triggers: parsed, keywordsRaw: parsed.join(", ") });
-            }}
-            placeholder="цена, скидк, заезд, бронь"
-          />
-          <p className="text-[11px] text-muted-foreground mt-1">
-            Через запятую. Сравнение по подстроке без регистра: «цен» поймает «цена», «цены», «ценник». Оставьте пустым, чтобы шаг шёл всегда.
-          </p>
-        </div>
+        {!local.is_greeting && (
+          <div>
+            <Label className="text-xs">Ключевые слова (через запятую, опц.)</Label>
+            <Input
+              value={local.keywordsRaw ?? local.keyword_triggers.join(", ")}
+              onChange={(e) => setLocal({ ...local, keywordsRaw: e.target.value })}
+              onBlur={() => {
+                const parsed = (local.keywordsRaw ?? "")
+                  .split(",")
+                  .map((s) => s.trim().toLowerCase())
+                  .filter(Boolean);
+                setLocal({ ...local, keyword_triggers: parsed, keywordsRaw: parsed.join(", ") });
+              }}
+              placeholder="цена, скидк, заезд, бронь"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Через запятую. Сравнение по подстроке без регистра: «цен» поймает «цена», «цены», «ценник». Оставьте пустым, чтобы шаг шёл всегда.
+            </p>
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <Switch checked={local.stop_on_client_reply} onCheckedChange={(v) => setLocal({ ...local, stop_on_client_reply: v })} />
