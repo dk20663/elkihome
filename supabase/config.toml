@@ -35,3 +35,7 @@ verify_jwt = false
 
 [functions.vk-process-chains]
 verify_jwt = false
+
+[functions.vk-poll-events]
+verify_jwt = false
+

@@ -480,6 +480,9 @@ export type Database = {
           group_id: number | null
           group_screen_name: string | null
           id: string
+          lp_key: string | null
+          lp_server: string | null
+          lp_ts: number | null
           updated_at: string
           webhook_registered_at: string | null
         }
@@ -492,6 +495,9 @@ export type Database = {
           group_id?: number | null
           group_screen_name?: string | null
           id?: string
+          lp_key?: string | null
+          lp_server?: string | null
+          lp_ts?: number | null
           updated_at?: string
           webhook_registered_at?: string | null
         }
@@ -504,6 +510,9 @@ export type Database = {
           group_id?: number | null
           group_screen_name?: string | null
           id?: string
+          lp_key?: string | null
+          lp_server?: string | null
+          lp_ts?: number | null
           updated_at?: string
           webhook_registered_at?: string | null
         }
