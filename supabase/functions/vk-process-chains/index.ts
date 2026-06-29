@@ -66,20 +66,26 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    const { data: sentRows } = await sb
+    // Шаги, отправленные В ТЕКУЩЕЙ СЕССИИ (после session_started_at).
+    const sessionStart = state.session_started_at ?? state.chain_started_at ?? state.created_at;
+    let sentQuery = sb
       .from("vk_message_log")
       .select("step_id")
       .eq("peer_id", state.peer_id)
       .eq("status", "sent");
+    if (sessionStart) sentQuery = sentQuery.gte("sent_at", sessionStart);
+    const { data: sentRows } = await sentQuery;
     const sentSet = new Set(
       (sentRows ?? []).map((r: any) => r.step_id).filter(Boolean),
     );
 
-    const { data: recentIn } = await sb
+    let inQuery = sb
       .from("vk_message_log")
       .select("text")
       .eq("peer_id", state.peer_id)
-      .eq("status", "skipped")
+      .eq("status", "skipped");
+    if (sessionStart) inQuery = inQuery.gte("sent_at", sessionStart);
+    const { data: recentIn } = await inQuery
       .order("sent_at", { ascending: false })
       .limit(KEYWORD_LOOKBACK);
     const clientHaystack = (recentIn ?? [])
