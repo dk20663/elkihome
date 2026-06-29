@@ -129,6 +129,7 @@ export async function processIncomingVkMessage(
         : null,
       last_client_message_at: now.toISOString(),
       chain_started_at: chainId ? now.toISOString() : null,
+      session_started_at: now.toISOString(),
     });
   } else {
     // В новой модели ответ клиента НЕ блокирует цепочку. Просто будим
@@ -138,23 +139,36 @@ export async function processIncomingVkMessage(
       client_replied_at: now.toISOString(),
       next_run_at: now.toISOString(),
     };
-    if ((existing as any).chain_completed_at && (existing as any).chain_id) {
+    const effectiveChainId = (existing as any).chain_id ?? chainId;
+    if (effectiveChainId && (existing as any).last_client_message_at) {
       const { data: chain } = await sb
         .from("vk_autoreply_chains")
-        .select("retrigger_after_days")
-        .eq("id", (existing as any).chain_id)
+        .select("reset_after_days, retrigger_after_days")
+        .eq("id", effectiveChainId)
         .maybeSingle();
-      const days = (chain as any)?.retrigger_after_days ?? null;
-      if (days && (existing as any).last_client_message_at) {
-        const elapsedDays =
-          (now.getTime() -
-            new Date((existing as any).last_client_message_at).getTime()) /
-          86_400_000;
-        if (elapsedDays >= days) {
-          updates.current_step = 0;
-          updates.chain_started_at = now.toISOString();
-          updates.chain_completed_at = null;
-        }
+      const resetDays = (chain as any)?.reset_after_days ?? 30;
+      const elapsedDays =
+        (now.getTime() -
+          new Date((existing as any).last_client_message_at).getTime()) /
+        86_400_000;
+      if (resetDays > 0 && elapsedDays >= resetDays) {
+        // Авто-сброс: забываем состояние автоответчика, журнал не трогаем.
+        updates.chain_id = effectiveChainId;
+        updates.current_step = 0;
+        updates.session_started_at = now.toISOString();
+        updates.chain_started_at = now.toISOString();
+        updates.chain_completed_at = null;
+        updates.last_auto_sent_at = null;
+      } else if (
+        (existing as any).chain_completed_at &&
+        (chain as any)?.retrigger_after_days &&
+        elapsedDays >= (chain as any).retrigger_after_days
+      ) {
+        updates.current_step = 0;
+        updates.session_started_at = now.toISOString();
+        updates.chain_started_at = now.toISOString();
+        updates.chain_completed_at = null;
+        updates.last_auto_sent_at = null;
       }
     }
     await sb.from("vk_chat_state").update(updates).eq("peer_id", peerId);
