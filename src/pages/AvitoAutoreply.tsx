@@ -441,6 +441,19 @@ function ChainEditor({ chain, onDelete }: { chain: Chain; onDelete: () => void }
               placeholder="не повторять"
             />
           </div>
+          <div>
+            <Label className="text-xs">Сброс сессии через N дней</Label>
+            <Input
+              type="number"
+              min={0}
+              value={local.reset_after_days ?? 30}
+              onChange={(e) => setLocal({ ...local, reset_after_days: e.target.value ? Number(e.target.value) : 0 })}
+              placeholder="30"
+            />
+            <div className="text-[11px] text-muted-foreground mt-1">
+              Если клиент не писал больше N дней — новое сообщение стартует цепочку с нуля. История чата не удаляется. 0 = не сбрасывать.
+            </div>
+          </div>
         </div>
         {local.category === "realty" && (
           <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
