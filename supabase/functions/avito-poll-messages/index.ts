@@ -122,6 +122,7 @@ async function upsertIncomingMessage(params: {
       next_run_at: await firstStepRunAt(chainId, createdAt),
       last_client_message_at: createdAt.toISOString(),
       chain_started_at: createdAt.toISOString(),
+      session_started_at: createdAt.toISOString(),
     });
   } else if (!existing.chain_id && chainId) {
     await sb.from("avito_chat_state").update({
@@ -132,17 +133,40 @@ async function upsertIncomingMessage(params: {
       last_client_message_at: createdAt.toISOString(),
       client_replied_at: null,
       chain_started_at: createdAt.toISOString(),
+      session_started_at: createdAt.toISOString(),
       chain_completed_at: null,
       last_auto_sent_at: null,
     }).eq("id", existing.id);
   } else if (!existing.chain_completed_at && existing.chain_id) {
-    // В новой модели ответ клиента НЕ блокирует цепочку.
-    // Будим процессор: keyword-шаги отработают по совпадению, sequential продолжится.
-    await sb.from("avito_chat_state").update({
-      last_client_message_at: createdAt.toISOString(),
-      client_replied_at: createdAt.toISOString(),
-      next_run_at: createdAt.toISOString(),
-    }).eq("id", existing.id);
+    // Авто-сброс сессии после длительного простоя.
+    const { data: chain } = await sb
+      .from("autoreply_chains")
+      .select("reset_after_days")
+      .eq("id", existing.chain_id)
+      .maybeSingle();
+    const resetDays = chain?.reset_after_days ?? 30;
+    const elapsedDays = existing.last_client_message_at
+      ? (createdAt.getTime() - new Date(existing.last_client_message_at).getTime()) /
+        86_400_000
+      : 0;
+    if (resetDays > 0 && elapsedDays >= resetDays) {
+      await sb.from("avito_chat_state").update({
+        current_step: 0,
+        next_run_at: createdAt.toISOString(),
+        last_client_message_at: createdAt.toISOString(),
+        client_replied_at: null,
+        chain_started_at: createdAt.toISOString(),
+        session_started_at: createdAt.toISOString(),
+        chain_completed_at: null,
+        last_auto_sent_at: null,
+      }).eq("id", existing.id);
+    } else {
+      await sb.from("avito_chat_state").update({
+        last_client_message_at: createdAt.toISOString(),
+        client_replied_at: createdAt.toISOString(),
+        next_run_at: createdAt.toISOString(),
+      }).eq("id", existing.id);
+    }
   } else {
     await sb.from("avito_chat_state").update({
       item_id: itemId,
@@ -152,6 +176,7 @@ async function upsertIncomingMessage(params: {
       last_client_message_at: createdAt.toISOString(),
       client_replied_at: null,
       chain_started_at: createdAt.toISOString(),
+      session_started_at: createdAt.toISOString(),
       chain_completed_at: null,
       last_auto_sent_at: null,
     }).eq("id", existing.id);
