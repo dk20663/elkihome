@@ -71,9 +71,14 @@ async function getRecentMessages(userId: number, chatId: string) {
   );
   if (!r.ok) return [];
   const json = await r.json().catch(() => ({}));
-  return (Array.isArray(json?.messages) ? json.messages : []) as Array<
-    Record<string, unknown>
-  >;
+  // Avito Messenger V3 returns the messages as a root array. Older/internal
+  // wrappers may return { messages: [...] }, so support both shapes.
+  const messages = Array.isArray(json)
+    ? json
+    : Array.isArray(json?.messages)
+      ? json.messages
+      : [];
+  return messages as Array<Record<string, unknown>>;
 }
 
 async function firstStepRunAt(chainId: string, fallback: Date) {
