@@ -69,7 +69,13 @@ async function getRecentMessages(userId: number, chatId: string) {
   const r = await avitoFetch(
     `/messenger/v3/accounts/${userId}/chats/${chatId}/messages?limit=${MAX_MESSAGES_PER_CHAT}`,
   );
-  if (!r.ok) return [];
+  if (!r.ok) {
+    return {
+      messages: [] as Array<Record<string, unknown>>,
+      error: `${r.status}: ${(await r.text()).slice(0, 300)}`,
+      shape: "http_error",
+    };
+  }
   const json = await r.json().catch(() => ({}));
   // Avito Messenger V3 returns the messages as a root array. Older/internal
   // wrappers may return { messages: [...] }, so support both shapes.
@@ -78,7 +84,15 @@ async function getRecentMessages(userId: number, chatId: string) {
     : Array.isArray(json?.messages)
       ? json.messages
       : [];
-  return messages as Array<Record<string, unknown>>;
+  return {
+    messages: messages as Array<Record<string, unknown>>,
+    error: null,
+    shape: Array.isArray(json)
+      ? "root_array"
+      : Array.isArray(json?.messages)
+        ? "messages_array"
+        : `unexpected:${Object.keys(json ?? {}).join(",")}`,
+  };
 }
 
 async function firstStepRunAt(chainId: string, fallback: Date) {
@@ -256,9 +270,18 @@ Deno.serve(async (req) => {
       if (!chatId || seenChats.has(chatId)) continue;
       seenChats.add(chatId);
 
-      const messages = await getRecentMessages(selfId, chatId);
+      const messageResult = await getRecentMessages(selfId, chatId);
+      const messages = messageResult.messages;
       if (messages.length === 0) {
-        if (debug) diagnostics.push({ item_id: itemId, chat_id: chatId, status: "no_messages" });
+        if (debug) {
+          diagnostics.push({
+            item_id: itemId,
+            chat_id: chatId,
+            status: "no_messages",
+            message_error: messageResult.error,
+            message_shape: messageResult.shape,
+          });
+        }
         continue;
       }
 
