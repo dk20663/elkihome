@@ -54,6 +54,14 @@ function getAuthorId(message: Record<string, unknown>): number | null {
   return asNumber(message.author_id ?? message.user_id ?? message.from_id);
 }
 
+function getLastMessageFromChat(chat: Record<string, unknown>) {
+  const lastMessage = chat.last_message as Record<string, unknown> | undefined;
+  if (!lastMessage) return null;
+  const createdMs = getMessageCreatedMs(lastMessage);
+  if (!createdMs) return null;
+  return { message: lastMessage, createdMs };
+}
+
 async function listChatsForItem(userId: number, itemId: number) {
   const r = await avitoFetch(
     `/messenger/v2/accounts/${userId}/chats?item_ids=${itemId}&limit=${MAX_CHATS_PER_AD}`,
@@ -271,7 +279,14 @@ Deno.serve(async (req) => {
       seenChats.add(chatId);
 
       const messageResult = await getRecentMessages(selfId, chatId);
-      const messages = messageResult.messages;
+      let messages = messageResult.messages;
+      if (messages.length === 0) {
+        // Some Avito tariffs allow the chat list but block the per-chat
+        // messages endpoint with 402. The list response still contains
+        // last_message, which is enough to wake keyword autoreplies.
+        const fallback = getLastMessageFromChat(chat as Record<string, unknown>);
+        if (fallback) messages = [fallback.message];
+      }
       if (messages.length === 0) {
         if (debug) {
           diagnostics.push({
