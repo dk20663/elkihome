@@ -21,6 +21,15 @@ const KEYWORD_LOOKBACK = 3;
 const INTER_CHAT_DELAY_MS = 1100;
 const INTER_MSG_DELAY_MS = 800;
 
+function isPermanentAvitoAccessError(res: { status: number; body: string }) {
+  const body = (res.body ?? "").toLowerCase();
+  return res.status === 402 && (
+    body.includes("api мессенджера") ||
+    body.includes("подписк") ||
+    body.includes("payment required")
+  );
+}
+
 function pickVariant(text: string): string {
   const parts = text.split("|||").map((p) => p.trim()).filter(Boolean);
   if (parts.length <= 1) return text;
@@ -117,7 +126,8 @@ Deno.serve(async (req) => {
     const sendStep = async (step: any) => {
       const text = pickVariant(step.text);
       const res = await sendChatMessage(selfId, state.chat_id, text);
-      const status = res.ok ? "sent" : "error";
+      const blockedByAvito = !res.ok && isPermanentAvitoAccessError(res);
+      const status = res.ok ? "sent" : blockedByAvito ? "blocked" : "error";
       await sb.from("avito_message_log").insert({
         chat_id: state.chat_id,
         item_id: state.item_id,
@@ -126,12 +136,20 @@ Deno.serve(async (req) => {
         step_index: step.order_index,
         text,
         status,
-        error: res.ok ? null : `${res.status}: ${res.body}`,
+        error: res.ok
+          ? null
+          : blockedByAvito
+            ? `${res.status}: Авито заблокировал отправку через Messenger API для этого объявления/категории. Нужна подходящая подписка API мессенджера в Авито.`
+            : `${res.status}: ${res.body}`,
       });
       if (res.ok) {
         sentSet.add(step.id);
         await sb.from("avito_chat_state").update({
           last_auto_sent_at: new Date().toISOString(),
+        }).eq("id", state.id);
+      } else if (blockedByAvito) {
+        await sb.from("avito_chat_state").update({
+          next_run_at: null,
         }).eq("id", state.id);
       }
       results.push({ chat: state.chat_id, step: step.order_index, status });
@@ -154,9 +172,6 @@ Deno.serve(async (req) => {
         for (const step of toSend) {
           const ok = await sendStep(step);
           if (!ok) {
-            await sb.from("avito_chat_state").update({
-              next_run_at: new Date(Date.now() + 10 * 60_000).toISOString(),
-            }).eq("id", state.id);
             break;
           }
           await new Promise((r) => setTimeout(r, INTER_MSG_DELAY_MS));
@@ -192,9 +207,12 @@ Deno.serve(async (req) => {
       // (ему уже было выставлено next_run_at при создании chat_state).
       const ok = await sendStep(step);
       if (!ok) {
+        const latest = results[results.length - 1];
         await sb.from("avito_chat_state").update({
           current_step: cursor,
-          next_run_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+          next_run_at: latest?.status === "blocked"
+            ? null
+            : new Date(Date.now() + 10 * 60_000).toISOString(),
         }).eq("id", state.id);
         nextRunAt = "_handled_";
         break;
