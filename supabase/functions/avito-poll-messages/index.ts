@@ -198,6 +198,8 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const debug = new URL(req.url).searchParams.get("debug") === "1";
+
   const sb = admin();
   let selfId: number;
   try {
@@ -216,6 +218,7 @@ Deno.serve(async (req) => {
     .limit(MAX_ADS_PER_RUN);
 
   const results: Array<Record<string, unknown>> = [];
+  const diagnostics: Array<Record<string, unknown>> = [];
   const seenChats = new Set<string>();
   const nowMs = Date.now();
 
@@ -235,6 +238,13 @@ Deno.serve(async (req) => {
       results.push({ item_id: itemId, status: "chat_list_error", error });
       continue;
     }
+    if (debug) {
+      diagnostics.push({
+        item_id: itemId,
+        status: "chats_loaded",
+        chats_count: chats.length,
+      });
+    }
 
     for (const chat of chats) {
       const chatId = String(chat?.id ?? "");
@@ -242,7 +252,10 @@ Deno.serve(async (req) => {
       seenChats.add(chatId);
 
       const messages = await getRecentMessages(selfId, chatId);
-      if (messages.length === 0) continue;
+      if (messages.length === 0) {
+        if (debug) diagnostics.push({ item_id: itemId, chat_id: chatId, status: "no_messages" });
+        continue;
+      }
 
       const withTime = messages
         .map((message) => ({ message, createdMs: getMessageCreatedMs(message) }))
@@ -250,12 +263,19 @@ Deno.serve(async (req) => {
           row.createdMs !== null
         )
         .sort((a, b) => b.createdMs - a.createdMs);
+      if (withTime.length === 0) {
+        if (debug) diagnostics.push({ item_id: itemId, chat_id: chatId, status: "no_message_time" });
+        continue;
+      }
 
       const latestClient = withTime.find((row) => {
         const authorId = getAuthorId(row.message);
         return Boolean(authorId && authorId !== selfId);
       });
-      if (!latestClient) continue;
+      if (!latestClient) {
+        if (debug) diagnostics.push({ item_id: itemId, chat_id: chatId, status: "no_client_message" });
+        continue;
+      }
 
       // If the seller/admin already replied after the latest client message,
       // do not send a late duplicate autoreply. Normal polling will catch the
@@ -264,10 +284,30 @@ Deno.serve(async (req) => {
         const authorId = getAuthorId(row.message);
         return authorId === selfId && row.createdMs > latestClient.createdMs;
       });
-      if (sellerReplyAfterClient) continue;
+      if (sellerReplyAfterClient) {
+        if (debug) {
+          diagnostics.push({
+            item_id: itemId,
+            chat_id: chatId,
+            status: "seller_reply_after_client",
+            latest_client_at: new Date(latestClient.createdMs).toISOString(),
+          });
+        }
+        continue;
+      }
 
       const createdMs = latestClient.createdMs;
-      if (!createdMs || nowMs - createdMs > RECENT_WINDOW_MS) continue;
+      if (!createdMs || nowMs - createdMs > RECENT_WINDOW_MS) {
+        if (debug) {
+          diagnostics.push({
+            item_id: itemId,
+            chat_id: chatId,
+            status: "client_message_too_old",
+            latest_client_at: createdMs ? new Date(createdMs).toISOString() : null,
+          });
+        }
+        continue;
+      }
 
       const text = getMessageText(latestClient.message);
       const queued = await upsertIncomingMessage({
@@ -281,7 +321,12 @@ Deno.serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, processed: results.length, results }), {
+  return new Response(JSON.stringify({
+    ok: true,
+    processed: results.length,
+    results,
+    ...(debug ? { diagnostics } : {}),
+  }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
