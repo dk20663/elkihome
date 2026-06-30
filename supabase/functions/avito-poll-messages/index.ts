@@ -54,6 +54,14 @@ function getAuthorId(message: Record<string, unknown>): number | null {
   return asNumber(message.author_id ?? message.user_id ?? message.from_id);
 }
 
+function getLastMessageFromChat(chat: Record<string, unknown>) {
+  const lastMessage = chat.last_message as Record<string, unknown> | undefined;
+  if (!lastMessage) return null;
+  const createdMs = getMessageCreatedMs(lastMessage);
+  if (!createdMs) return null;
+  return { message: lastMessage, createdMs };
+}
+
 async function listChatsForItem(userId: number, itemId: number) {
   const r = await avitoFetch(
     `/messenger/v2/accounts/${userId}/chats?item_ids=${itemId}&limit=${MAX_CHATS_PER_AD}`,
@@ -69,11 +77,30 @@ async function getRecentMessages(userId: number, chatId: string) {
   const r = await avitoFetch(
     `/messenger/v3/accounts/${userId}/chats/${chatId}/messages?limit=${MAX_MESSAGES_PER_CHAT}`,
   );
-  if (!r.ok) return [];
+  if (!r.ok) {
+    return {
+      messages: [] as Array<Record<string, unknown>>,
+      error: `${r.status}: ${(await r.text()).slice(0, 300)}`,
+      shape: "http_error",
+    };
+  }
   const json = await r.json().catch(() => ({}));
-  return (Array.isArray(json?.messages) ? json.messages : []) as Array<
-    Record<string, unknown>
-  >;
+  // Avito Messenger V3 returns the messages as a root array. Older/internal
+  // wrappers may return { messages: [...] }, so support both shapes.
+  const messages = Array.isArray(json)
+    ? json
+    : Array.isArray(json?.messages)
+      ? json.messages
+      : [];
+  return {
+    messages: messages as Array<Record<string, unknown>>,
+    error: null,
+    shape: Array.isArray(json)
+      ? "root_array"
+      : Array.isArray(json?.messages)
+        ? "messages_array"
+        : `unexpected:${Object.keys(json ?? {}).join(",")}`,
+  };
 }
 
 async function firstStepRunAt(chainId: string, fallback: Date) {
@@ -198,6 +225,8 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const debug = new URL(req.url).searchParams.get("debug") === "1";
+
   const sb = admin();
   let selfId: number;
   try {
@@ -216,6 +245,7 @@ Deno.serve(async (req) => {
     .limit(MAX_ADS_PER_RUN);
 
   const results: Array<Record<string, unknown>> = [];
+  const diagnostics: Array<Record<string, unknown>> = [];
   const seenChats = new Set<string>();
   const nowMs = Date.now();
 
@@ -235,14 +265,40 @@ Deno.serve(async (req) => {
       results.push({ item_id: itemId, status: "chat_list_error", error });
       continue;
     }
+    if (debug) {
+      diagnostics.push({
+        item_id: itemId,
+        status: "chats_loaded",
+        chats_count: chats.length,
+      });
+    }
 
     for (const chat of chats) {
       const chatId = String(chat?.id ?? "");
       if (!chatId || seenChats.has(chatId)) continue;
       seenChats.add(chatId);
 
-      const messages = await getRecentMessages(selfId, chatId);
-      if (messages.length === 0) continue;
+      const messageResult = await getRecentMessages(selfId, chatId);
+      let messages = messageResult.messages;
+      if (messages.length === 0) {
+        // Some Avito tariffs allow the chat list but block the per-chat
+        // messages endpoint with 402. The list response still contains
+        // last_message, which is enough to wake keyword autoreplies.
+        const fallback = getLastMessageFromChat(chat as Record<string, unknown>);
+        if (fallback) messages = [fallback.message];
+      }
+      if (messages.length === 0) {
+        if (debug) {
+          diagnostics.push({
+            item_id: itemId,
+            chat_id: chatId,
+            status: "no_messages",
+            message_error: messageResult.error,
+            message_shape: messageResult.shape,
+          });
+        }
+        continue;
+      }
 
       const withTime = messages
         .map((message) => ({ message, createdMs: getMessageCreatedMs(message) }))
@@ -250,12 +306,19 @@ Deno.serve(async (req) => {
           row.createdMs !== null
         )
         .sort((a, b) => b.createdMs - a.createdMs);
+      if (withTime.length === 0) {
+        if (debug) diagnostics.push({ item_id: itemId, chat_id: chatId, status: "no_message_time" });
+        continue;
+      }
 
       const latestClient = withTime.find((row) => {
         const authorId = getAuthorId(row.message);
         return Boolean(authorId && authorId !== selfId);
       });
-      if (!latestClient) continue;
+      if (!latestClient) {
+        if (debug) diagnostics.push({ item_id: itemId, chat_id: chatId, status: "no_client_message" });
+        continue;
+      }
 
       // If the seller/admin already replied after the latest client message,
       // do not send a late duplicate autoreply. Normal polling will catch the
@@ -264,10 +327,30 @@ Deno.serve(async (req) => {
         const authorId = getAuthorId(row.message);
         return authorId === selfId && row.createdMs > latestClient.createdMs;
       });
-      if (sellerReplyAfterClient) continue;
+      if (sellerReplyAfterClient) {
+        if (debug) {
+          diagnostics.push({
+            item_id: itemId,
+            chat_id: chatId,
+            status: "seller_reply_after_client",
+            latest_client_at: new Date(latestClient.createdMs).toISOString(),
+          });
+        }
+        continue;
+      }
 
       const createdMs = latestClient.createdMs;
-      if (!createdMs || nowMs - createdMs > RECENT_WINDOW_MS) continue;
+      if (!createdMs || nowMs - createdMs > RECENT_WINDOW_MS) {
+        if (debug) {
+          diagnostics.push({
+            item_id: itemId,
+            chat_id: chatId,
+            status: "client_message_too_old",
+            latest_client_at: createdMs ? new Date(createdMs).toISOString() : null,
+          });
+        }
+        continue;
+      }
 
       const text = getMessageText(latestClient.message);
       const queued = await upsertIncomingMessage({
@@ -281,7 +364,12 @@ Deno.serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, processed: results.length, results }), {
+  return new Response(JSON.stringify({
+    ok: true,
+    processed: results.length,
+    results,
+    ...(debug ? { diagnostics } : {}),
+  }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
