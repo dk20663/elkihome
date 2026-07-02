@@ -156,8 +156,20 @@ Deno.serve(async (req) => {
       return res.ok;
     };
 
+    // --- Phase A0: приветствие. Отправляем один раз за сессию при первом
+    // клиентском сообщении, даже если нет совпадения по ключевым словам
+    // и sequential-шагов в цепочке нет.
+    const greetingStep = steps.find(
+      (s: any) => s.is_greeting && !sentSet.has(s.id),
+    );
+    let greetingSent = false;
+    if (greetingStep && clientHaystack) {
+      const ok = await sendStep(greetingStep);
+      greetingSent = ok;
+      if (ok) await new Promise((r) => setTimeout(r, INTER_MSG_DELAY_MS));
+    }
+
     // --- Phase A: keyword-шаги (любой порядок, по совпадению).
-    // Перед ними — приветствие (если есть и ещё не отправлено в этой сессии).
     if (clientHaystack) {
       const matchedKeywordSteps = steps.filter((step: any) =>
         step.keyword_triggers && step.keyword_triggers.length > 0 &&
@@ -166,18 +178,13 @@ Deno.serve(async (req) => {
           clientHaystack.includes(String(kw).toLowerCase())
         )
       );
-      if (matchedKeywordSteps.length > 0) {
-        const greeting = steps.find((s: any) => s.is_greeting && !sentSet.has(s.id));
-        const toSend = greeting ? [greeting, ...matchedKeywordSteps] : matchedKeywordSteps;
-        for (const step of toSend) {
-          const ok = await sendStep(step);
-          if (!ok) {
-            break;
-          }
-          await new Promise((r) => setTimeout(r, INTER_MSG_DELAY_MS));
-        }
+      for (const step of matchedKeywordSteps) {
+        const ok = await sendStep(step);
+        if (!ok) break;
+        await new Promise((r) => setTimeout(r, INTER_MSG_DELAY_MS));
       }
     }
+    void greetingSent;
 
     // --- Phase B: sequential шаги по current_step (только non-keyword).
     let cursor = state.current_step ?? 0;

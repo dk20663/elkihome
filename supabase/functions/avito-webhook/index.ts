@@ -113,9 +113,7 @@ Deno.serve(async (req) => {
       session_started_at: now.toISOString(),
     });
   } else {
-    // Existing chat — клиент написал сообщение. В новой модели ответ клиента
-    // НЕ останавливает цепочку. Просто будим процессор: он сам решит, какие
-    // keyword-шаги отправить (по совпадению) и продолжит sequential.
+    // Existing chat — клиент написал сообщение. Будим процессор.
     const updates: Record<string, unknown> = {
       last_client_message_at: now.toISOString(),
       client_replied_at: now.toISOString(),
@@ -129,36 +127,29 @@ Deno.serve(async (req) => {
       updates.chain_started_at = now.toISOString();
       updates.session_started_at = now.toISOString();
       updates.chain_completed_at = null;
+      updates.last_auto_sent_at = null;
     }
 
-    // Авто-сброс сессии: если от последнего сообщения клиента прошло больше
-    // reset_after_days — забываем состояние автоответчика и стартуем заново.
-    // История переписки и логи НЕ удаляются — фильтрация по session_started_at
-    // делает старые записи log невидимыми для процессора.
+    // Если предыдущая цепочка уже завершена — это НОВАЯ сессия. Всегда
+    // сбрасываем состояние (иначе процессор игнорирует чат по фильтру
+    // chain_completed_at IS NULL). Также сброс срабатывает по истечению
+    // reset_after_days.
     const effectiveChainId = (updates.chain_id as string | undefined) ?? existing.chain_id;
-    if (effectiveChainId && existing.last_client_message_at) {
-      const { data: chain } = await sb
-        .from("autoreply_chains")
-        .select("reset_after_days, retrigger_after_days")
-        .eq("id", effectiveChainId)
-        .maybeSingle();
-      const resetDays = chain?.reset_after_days ?? 30;
-      const elapsedDays =
-        (now.getTime() - new Date(existing.last_client_message_at).getTime()) /
-        86_400_000;
-      if (resetDays > 0 && elapsedDays >= resetDays) {
-        updates.current_step = 0;
-        updates.session_started_at = now.toISOString();
-        updates.chain_started_at = now.toISOString();
-        updates.chain_completed_at = null;
-        updates.last_auto_sent_at = null;
-      } else if (
-        existing.chain_completed_at &&
-        chain?.retrigger_after_days &&
-        elapsedDays >= chain.retrigger_after_days
-      ) {
-        // Legacy retrigger: используется только если цепочка УЖЕ завершена
-        // и reset_after_days не сработал раньше.
+    if (effectiveChainId) {
+      let shouldReset = Boolean(existing.chain_completed_at);
+      if (!shouldReset && existing.last_client_message_at) {
+        const { data: chain } = await sb
+          .from("autoreply_chains")
+          .select("reset_after_days")
+          .eq("id", effectiveChainId)
+          .maybeSingle();
+        const resetDays = chain?.reset_after_days ?? 30;
+        const elapsedDays =
+          (now.getTime() - new Date(existing.last_client_message_at).getTime()) /
+          86_400_000;
+        if (resetDays > 0 && elapsedDays >= resetDays) shouldReset = true;
+      }
+      if (shouldReset) {
         updates.current_step = 0;
         updates.session_started_at = now.toISOString();
         updates.chain_started_at = now.toISOString();
