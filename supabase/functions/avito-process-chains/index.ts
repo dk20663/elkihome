@@ -156,14 +156,14 @@ Deno.serve(async (req) => {
       return res.ok;
     };
 
-    // --- Phase A0: приветствие. Отправляем один раз за сессию при первом
-    // клиентском сообщении, даже если нет совпадения по ключевым словам
-    // и sequential-шагов в цепочке нет.
+    // --- Phase A0: приветствие. Отправляется один раз за сессию —
+    // ПРОАКТИВНО, как только создан chat_state (в т.ч. по новой брони,
+    // когда клиент ещё нам не писал). Не требует клиентских сообщений.
     const greetingStep = steps.find(
       (s: any) => s.is_greeting && !sentSet.has(s.id),
     );
     let greetingSent = false;
-    if (greetingStep && clientHaystack) {
+    if (greetingStep) {
       const ok = await sendStep(greetingStep);
       greetingSent = ok;
       if (ok) await new Promise((r) => setTimeout(r, INTER_MSG_DELAY_MS));
