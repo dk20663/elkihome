@@ -49,9 +49,8 @@ function isTodayMSKPlus4(date: Date): boolean {
 }
 
 
-
 const HOUSE_DISCOUNT = 2000;
-const SAUNA_DISCOUNTED = 3000;
+const SAUNA_DISCOUNT = 2000;
 
 export default function GuestPriceDetail({ date, houses, filter, open, onClose, bookings = [], pricing = [] }: Props) {
   if (!date) return null;
