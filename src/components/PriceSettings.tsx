@@ -132,6 +132,26 @@ export default function PriceSettings({ houses, onClose }: Props) {
                 />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Баня, ₽</Label>
+                <Input
+                  type="number"
+                  value={p.sauna_price}
+                  onChange={(e) => updateField(p.id, "sauna_price", Number(e.target.value))}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Банный чан (купель), ₽</Label>
+                <Input
+                  type="number"
+                  value={p.plunge_pool_price}
+                  onChange={(e) => updateField(p.id, "plunge_pool_price", Number(e.target.value))}
+                  className="mt-1"
+                />
+              </div>
+            </div>
             <div>
               <Label className="text-xs text-muted-foreground">
                 Комментарий для гостя (виден при просмотре даты)
