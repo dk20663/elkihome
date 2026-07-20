@@ -432,6 +432,8 @@ export type Database = {
           guest_comment: string
           id: string
           name: string
+          plunge_pool_price: number
+          sauna_price: number
           sutochno_ical_url: string
         }
         Insert: {
@@ -443,6 +445,8 @@ export type Database = {
           guest_comment?: string
           id?: string
           name: string
+          plunge_pool_price?: number
+          sauna_price?: number
           sutochno_ical_url?: string
         }
         Update: {
@@ -454,6 +458,8 @@ export type Database = {
           guest_comment?: string
           id?: string
           name?: string
+          plunge_pool_price?: number
+          sauna_price?: number
           sutochno_ical_url?: string
         }
         Relationships: []

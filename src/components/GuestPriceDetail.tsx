@@ -49,9 +49,8 @@ function isTodayMSKPlus4(date: Date): boolean {
 }
 
 
-
 const HOUSE_DISCOUNT = 2000;
-const SAUNA_DISCOUNTED = 3000;
+const SAUNA_DISCOUNT = 2000;
 
 export default function GuestPriceDetail({ date, houses, filter, open, onClose, bookings = [], pricing = [] }: Props) {
   if (!date) return null;
@@ -87,7 +86,9 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
             if (!house) return null;
             const customPrice = pricing.find((p) => p.house_id === house.id && p.date === dateStr);
             const housePrice = customPrice ? customPrice.price : (isWeekday ? house.base_price_weekday : house.base_price_weekend);
-            const plungePrice = house.name === "GREEN" ? 5500 : 5000;
+            const saunaPrice = house.sauna_price ?? 5000;
+            const saunaDiscounted = Math.max(0, saunaPrice - SAUNA_DISCOUNT);
+            const plungePrice = house.plunge_pool_price ?? (house.name === "GREEN" ? 5500 : 5000);
             const isBooked = isHouseBookedOnDate(date, house.id, bookings);
 
             // Today discount: only if today AND house is free
@@ -170,11 +171,11 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
                       <span>Баня</span>
                       {hasTodayDiscount ? (
                         <span className="flex items-center gap-2">
-                          <span className="line-through text-muted-foreground">5 000 ₽</span>
-                          <span className="font-semibold text-emerald-600">{SAUNA_DISCOUNTED.toLocaleString("ru-RU")} ₽</span>
+                          <span className="line-through text-muted-foreground">{saunaPrice.toLocaleString("ru-RU")} ₽</span>
+                          <span className="font-semibold text-emerald-600">{saunaDiscounted.toLocaleString("ru-RU")} ₽</span>
                         </span>
                       ) : (
-                        <span className="font-semibold">5 000 ₽</span>
+                        <span className="font-semibold">{saunaPrice.toLocaleString("ru-RU")} ₽</span>
                       )}
                     </div>
                   </div>

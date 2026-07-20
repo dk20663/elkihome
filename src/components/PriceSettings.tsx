@@ -22,6 +22,8 @@ export default function PriceSettings({ houses, onClose }: Props) {
       name: h.name,
       weekday: h.base_price_weekday,
       weekend: h.base_price_weekend,
+      sauna_price: h.sauna_price ?? 5000,
+      plunge_pool_price: h.plunge_pool_price ?? 5000,
       guest_comment: h.guest_comment ?? "",
       sutochno_ical_url: h.sutochno_ical_url ?? "",
       cian_ical_url: h.cian_ical_url ?? "",
@@ -47,7 +49,7 @@ export default function PriceSettings({ houses, onClose }: Props) {
 
   const updateField = (
     id: string,
-    field: "weekday" | "weekend" | "guest_comment" | "sutochno_ical_url" | "cian_ical_url",
+    field: "weekday" | "weekend" | "sauna_price" | "plunge_pool_price" | "guest_comment" | "sutochno_ical_url" | "cian_ical_url",
     value: number | string
   ) => {
     setPrices((prev) =>
@@ -64,6 +66,8 @@ export default function PriceSettings({ houses, onClose }: Props) {
           .update({
             base_price_weekday: p.weekday,
             base_price_weekend: p.weekend,
+            sauna_price: p.sauna_price,
+            plunge_pool_price: p.plunge_pool_price,
             guest_comment: p.guest_comment,
             sutochno_ical_url: p.sutochno_ical_url.trim(),
             cian_ical_url: p.cian_ical_url.trim(),
@@ -124,6 +128,26 @@ export default function PriceSettings({ houses, onClose }: Props) {
                   type="number"
                   value={p.weekend}
                   onChange={(e) => updateField(p.id, "weekend", Number(e.target.value))}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Баня, ₽</Label>
+                <Input
+                  type="number"
+                  value={p.sauna_price}
+                  onChange={(e) => updateField(p.id, "sauna_price", Number(e.target.value))}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Банный чан (купель), ₽</Label>
+                <Input
+                  type="number"
+                  value={p.plunge_pool_price}
+                  onChange={(e) => updateField(p.id, "plunge_pool_price", Number(e.target.value))}
                   className="mt-1"
                 />
               </div>
