@@ -49,7 +49,7 @@ export default function PriceSettings({ houses, onClose }: Props) {
 
   const updateField = (
     id: string,
-    field: "weekday" | "weekend" | "guest_comment" | "sutochno_ical_url" | "cian_ical_url",
+    field: "weekday" | "weekend" | "sauna_price" | "plunge_pool_price" | "guest_comment" | "sutochno_ical_url" | "cian_ical_url",
     value: number | string
   ) => {
     setPrices((prev) =>
@@ -66,6 +66,8 @@ export default function PriceSettings({ houses, onClose }: Props) {
           .update({
             base_price_weekday: p.weekday,
             base_price_weekend: p.weekend,
+            sauna_price: p.sauna_price,
+            plunge_pool_price: p.plunge_pool_price,
             guest_comment: p.guest_comment,
             sutochno_ical_url: p.sutochno_ical_url.trim(),
             cian_ical_url: p.cian_ical_url.trim(),
