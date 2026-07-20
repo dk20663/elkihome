@@ -22,6 +22,8 @@ export default function PriceSettings({ houses, onClose }: Props) {
       name: h.name,
       weekday: h.base_price_weekday,
       weekend: h.base_price_weekend,
+      sauna_price: h.sauna_price ?? 5000,
+      plunge_pool_price: h.plunge_pool_price ?? 5000,
       guest_comment: h.guest_comment ?? "",
       sutochno_ical_url: h.sutochno_ical_url ?? "",
       cian_ical_url: h.cian_ical_url ?? "",
