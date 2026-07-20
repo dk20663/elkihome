@@ -86,7 +86,9 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
             if (!house) return null;
             const customPrice = pricing.find((p) => p.house_id === house.id && p.date === dateStr);
             const housePrice = customPrice ? customPrice.price : (isWeekday ? house.base_price_weekday : house.base_price_weekend);
-            const plungePrice = house.name === "GREEN" ? 5500 : 5000;
+            const saunaPrice = house.sauna_price ?? 5000;
+            const saunaDiscounted = Math.max(0, saunaPrice - SAUNA_DISCOUNT);
+            const plungePrice = house.plunge_pool_price ?? (house.name === "GREEN" ? 5500 : 5000);
             const isBooked = isHouseBookedOnDate(date, house.id, bookings);
 
             // Today discount: only if today AND house is free
