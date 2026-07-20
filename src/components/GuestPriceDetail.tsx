@@ -171,11 +171,11 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
                       <span>Баня</span>
                       {hasTodayDiscount ? (
                         <span className="flex items-center gap-2">
-                          <span className="line-through text-muted-foreground">5 000 ₽</span>
-                          <span className="font-semibold text-emerald-600">{SAUNA_DISCOUNTED.toLocaleString("ru-RU")} ₽</span>
+                          <span className="line-through text-muted-foreground">{saunaPrice.toLocaleString("ru-RU")} ₽</span>
+                          <span className="font-semibold text-emerald-600">{saunaDiscounted.toLocaleString("ru-RU")} ₽</span>
                         </span>
                       ) : (
-                        <span className="font-semibold">5 000 ₽</span>
+                        <span className="font-semibold">{saunaPrice.toLocaleString("ru-RU")} ₽</span>
                       )}
                     </div>
                   </div>
