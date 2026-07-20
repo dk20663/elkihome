@@ -4,6 +4,8 @@ export interface House {
   color: string;
   base_price_weekday: number;
   base_price_weekend: number;
+  sauna_price: number;
+  plunge_pool_price: number;
   guest_comment?: string;
   sutochno_ical_url?: string;
   cian_ical_url?: string;
