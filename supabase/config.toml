@@ -42,3 +42,6 @@ verify_jwt = false
 [functions.vk-poll-events]
 verify_jwt = false
 
+[functions.monthly-report]
+verify_jwt = false
+
