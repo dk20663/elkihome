@@ -8,13 +8,31 @@ const corsHeaders = {
 
 const ADMIN_CHAT_ID = 190449843;
 
-// Электричество в месяц
-const ELECTRICITY = { GREEN: 5000, BLACK: 20000 };
-// Прачечная на 1 гостя
-const LAUNDRY_PER_GUEST = 500;
-// Привозная вода: 1 доставка = 4 купели в GREEN
-const WATER_DELIVERY_PRICE = 5500;
-const POOLS_PER_DELIVERY = 4;
+interface ReportSettings {
+  salary_green: number;
+  salary_black: number;
+  salary_sauna_bonus: number;
+  salary_pool_bonus: number;
+  laundry_per_guest: number;
+  electricity_green: number;
+  electricity_black: number;
+  water_delivery_price: number;
+  pools_per_delivery: number;
+  firewood_per_pool: number;
+}
+
+const DEFAULT_SETTINGS: ReportSettings = {
+  salary_green: 2250,
+  salary_black: 2650,
+  salary_sauna_bonus: 250,
+  salary_pool_bonus: 500,
+  laundry_per_guest: 500,
+  electricity_green: 5000,
+  electricity_black: 20000,
+  water_delivery_price: 5500,
+  pools_per_delivery: 4,
+  firewood_per_pool: 1500,
+};
 
 function houseKind(name: string): "GREEN" | "BLACK" | "OTHER" {
   const n = (name || "").toUpperCase();
@@ -23,9 +41,9 @@ function houseKind(name: string): "GREEN" | "BLACK" | "OTHER" {
   return "OTHER";
 }
 
-function salaryPerBooking(kind: "GREEN" | "BLACK" | "OTHER", sauna: boolean, pool: boolean): number {
-  const base = kind === "BLACK" ? 2400 : 2250;
-  return base + (sauna ? 250 : 0) + (pool ? 500 : 0);
+function salaryPerBooking(kind: "GREEN" | "BLACK" | "OTHER", sauna: boolean, pool: boolean, s: ReportSettings): number {
+  const base = kind === "BLACK" ? s.salary_black : s.salary_green;
+  return base + (sauna ? s.salary_sauna_bonus : 0) + (pool ? s.salary_pool_bonus : 0);
 }
 
 function fmt(n: number): string {
