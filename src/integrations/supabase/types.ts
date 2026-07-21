@@ -485,6 +485,54 @@ export type Database = {
         }
         Relationships: []
       }
+      report_settings: {
+        Row: {
+          created_at: string
+          electricity_black: number
+          electricity_green: number
+          firewood_per_pool: number
+          id: boolean
+          laundry_per_guest: number
+          pools_per_delivery: number
+          salary_black: number
+          salary_green: number
+          salary_pool_bonus: number
+          salary_sauna_bonus: number
+          updated_at: string
+          water_delivery_price: number
+        }
+        Insert: {
+          created_at?: string
+          electricity_black?: number
+          electricity_green?: number
+          firewood_per_pool?: number
+          id?: boolean
+          laundry_per_guest?: number
+          pools_per_delivery?: number
+          salary_black?: number
+          salary_green?: number
+          salary_pool_bonus?: number
+          salary_sauna_bonus?: number
+          updated_at?: string
+          water_delivery_price?: number
+        }
+        Update: {
+          created_at?: string
+          electricity_black?: number
+          electricity_green?: number
+          firewood_per_pool?: number
+          id?: boolean
+          laundry_per_guest?: number
+          pools_per_delivery?: number
+          salary_black?: number
+          salary_green?: number
+          salary_pool_bonus?: number
+          salary_sauna_bonus?: number
+          updated_at?: string
+          water_delivery_price?: number
+        }
+        Relationships: []
+      }
       vk_account: {
         Row: {
           access_token: string | null
