@@ -124,6 +124,14 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { /* empty */ }
     const partial: boolean = !!body.partial;
 
+    // Load settings
+    const { data: settingsRow } = await supabase
+      .from("report_settings")
+      .select("*")
+      .eq("id", true)
+      .maybeSingle();
+    const S: ReportSettings = { ...DEFAULT_SETTINGS, ...(settingsRow || {}) };
+
     // МСК = UTC+3
     const nowMsk = new Date(Date.now() + 3 * 3600 * 1000);
     const { start, end, label } = monthRange(partial, nowMsk);
@@ -148,7 +156,7 @@ Deno.serve(async (req) => {
           bookings: 0, guests: 0,
           sauna: 0, pool: 0,
           bath_brooms: 0, fir_infusion: 0, citrus_infusion: 0,
-          revenue: 0, laundry: 0, salary: 0, electricity: 0, water: 0,
+          revenue: 0, laundry: 0, salary: 0, electricity: 0, water: 0, firewood: 0,
         };
         byHouse.set(name, s);
       }
@@ -160,17 +168,18 @@ Deno.serve(async (req) => {
       if (b.fir_infusion) s.fir_infusion += 1;
       if (b.citrus_infusion) s.citrus_infusion += 1;
       s.revenue += Number(b.total_price) || 0;
-      s.laundry += (b.guest_count || 0) * LAUNDRY_PER_GUEST;
-      s.salary += salaryPerBooking(kind, !!b.sauna, !!b.plunge_pool);
+      s.laundry += (b.guest_count || 0) * S.laundry_per_guest;
+      s.salary += salaryPerBooking(kind, !!b.sauna, !!b.plunge_pool, S);
     }
 
-    // Расходы на электричество и воду
+    // Расходы на электричество, воду и дрова
     for (const s of byHouse.values()) {
+      s.firewood = s.pool * S.firewood_per_pool;
       if (s.kind === "GREEN") {
-        s.electricity = ELECTRICITY.GREEN;
-        s.water = Math.floor(s.pool / POOLS_PER_DELIVERY) * WATER_DELIVERY_PRICE;
+        s.electricity = S.electricity_green;
+        s.water = Math.floor(s.pool / Math.max(1, S.pools_per_delivery)) * S.water_delivery_price;
       } else if (s.kind === "BLACK") {
-        s.electricity = ELECTRICITY.BLACK;
+        s.electricity = S.electricity_black;
       }
     }
 
@@ -190,7 +199,7 @@ Deno.serve(async (req) => {
 
     for (const s of order) {
       const emoji = s.kind === "GREEN" ? "🌲" : s.kind === "BLACK" ? "🖤" : "🏠";
-      const expenses = s.laundry + s.salary + s.electricity + s.water;
+      const expenses = s.laundry + s.salary + s.electricity + s.water + s.firewood;
       const profit = s.revenue - expenses;
       totalRevenue += s.revenue;
       totalExpenses += expenses;
@@ -205,12 +214,15 @@ Deno.serve(async (req) => {
       lines.push("");
       lines.push(`💰 Выручка: <b>${fmt(s.revenue)} ₽</b>`);
       lines.push(`<i>Расходы:</i>`);
-      lines.push(`  • Прачечная (${s.guests}×500): ${fmt(s.laundry)} ₽`);
+      lines.push(`  • Прачечная (${s.guests}×${fmt(S.laundry_per_guest)}): ${fmt(s.laundry)} ₽`);
       lines.push(`  • З/П персонала: ${fmt(s.salary)} ₽`);
       lines.push(`  • Электричество: ${fmt(s.electricity)} ₽`);
+      if (s.pool > 0) {
+        lines.push(`  • Дрова для купели (${s.pool}×${fmt(S.firewood_per_pool)}): ${fmt(s.firewood)} ₽`);
+      }
       if (s.kind === "GREEN") {
-        const deliveries = Math.floor(s.pool / POOLS_PER_DELIVERY);
-        lines.push(`  • Привозная вода (${deliveries}×5500): ${fmt(s.water)} ₽`);
+        const deliveries = Math.floor(s.pool / Math.max(1, S.pools_per_delivery));
+        lines.push(`  • Привозная вода (${deliveries}×${fmt(S.water_delivery_price)}): ${fmt(s.water)} ₽`);
       }
       lines.push(`  <b>Итого расходов: ${fmt(expenses)} ₽</b>`);
       lines.push(`${profit >= 0 ? "✅" : "⚠️"} <b>Прибыль: ${fmt(profit)} ₽</b>`);
