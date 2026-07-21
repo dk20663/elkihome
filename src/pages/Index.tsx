@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, addMonths, subMonths, parseISO, isSameDay, isAfter, isBefore } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, LogOut, Settings, Download, MessageSquare } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, LogOut, Settings, Download, MessageSquare, BarChart3 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import CalendarGrid from "@/components/CalendarGrid";
