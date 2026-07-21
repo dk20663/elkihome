@@ -259,6 +259,49 @@ export default function PriceSettings({ houses, onClose }: Props) {
 
       <div className="mt-8 rounded-2xl bg-card p-4 border border-border/50 space-y-3">
         <div>
+          <h2 className="font-semibold text-sm">Параметры расчёта отчёта</h2>
+          <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+            Базовые расходы для ежемесячного финансового отчёта. З/П начисляется
+            один раз за бронирование (независимо от количества дней). Дрова
+            начисляются на каждую заказанную купель.
+          </p>
+        </div>
+        {reportLoading ? (
+          <p className="text-xs text-muted-foreground">Загрузка...</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              {REPORT_FIELDS.map((f) => (
+                <div key={f.key}>
+                  <Label className="text-xs text-muted-foreground">{f.label}</Label>
+                  <Input
+                    type="number"
+                    value={reportSettings[f.key]}
+                    onChange={(e) =>
+                      setReportSettings((s) => ({
+                        ...s,
+                        [f.key]: Number(e.target.value),
+                      }))
+                    }
+                    className="mt-1"
+                  />
+                </div>
+              ))}
+            </div>
+            <Button
+              className="w-full"
+              onClick={saveReportSettings}
+              disabled={savingReport}
+            >
+              {savingReport ? "Сохранение..." : "Сохранить параметры отчёта"}
+            </Button>
+          </>
+        )}
+      </div>
+
+
+      <div className="mt-8 rounded-2xl bg-card p-4 border border-border/50 space-y-3">
+        <div>
           <h2 className="font-semibold text-sm">Синхронизация календарей (iCal)</h2>
           <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
             Ваш календарь — единый источник данных. Вставьте эти ссылки в импорт календаря
