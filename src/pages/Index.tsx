@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, addMonths, subMonths, parseISO, isSameDay, isAfter, isBefore } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, LogOut, Settings, Download, MessageSquare } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, LogOut, Settings, Download, MessageSquare, BarChart3 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import CalendarGrid from "@/components/CalendarGrid";
@@ -286,6 +286,29 @@ function AdminView({ onBackToRoles }: { onBackToRoles: () => void }) {
             }
           }} title="Выгрузить данные">
             <Download className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={async () => {
+            try {
+              const { data: { session } } = await supabase.auth.getSession();
+              const res = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/monthly-report`,
+                {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${session?.access_token}`,
+                    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ partial: true }),
+                }
+              );
+              if (!res.ok) throw new Error("Report failed");
+              toast.success("Отчёт отправлен в Телеграм");
+            } catch (err: any) {
+              toast.error(err.message);
+            }
+          }} title="Отчёт за текущий месяц">
+            <BarChart3 className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowPriceSettings(true)} title="Настройки цен">
             <Settings className="h-4 w-4" />
