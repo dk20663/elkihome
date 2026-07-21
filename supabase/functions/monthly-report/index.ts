@@ -91,6 +91,7 @@ interface HouseStats {
   salary: number;
   electricity: number;
   water: number;
+  firewood: number;
 }
 
 async function sendTelegram(botToken: string, chatId: number, text: string) {
