@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,45 @@ interface Props {
   houses: House[];
   onClose: () => void;
 }
+
+const REPORT_FIELDS: { key: keyof ReportSettingsState; label: string; hint?: string }[] = [
+  { key: "salary_green", label: "З/П за бронь, GREEN (₽)" },
+  { key: "salary_black", label: "З/П за бронь, BLACK (₽)" },
+  { key: "salary_sauna_bonus", label: "Доплата за баню (₽)" },
+  { key: "salary_pool_bonus", label: "Доплата за купель (₽)" },
+  { key: "laundry_per_guest", label: "Прачечная за гостя (₽)" },
+  { key: "electricity_green", label: "Электричество GREEN / мес (₽)" },
+  { key: "electricity_black", label: "Электричество BLACK / мес (₽)" },
+  { key: "firewood_per_pool", label: "Дрова за 1 купель (₽)" },
+  { key: "water_delivery_price", label: "Доставка воды, 1 привоз (₽)" },
+  { key: "pools_per_delivery", label: "Купелей на 1 привоз (шт)" },
+];
+
+type ReportSettingsState = {
+  salary_green: number;
+  salary_black: number;
+  salary_sauna_bonus: number;
+  salary_pool_bonus: number;
+  laundry_per_guest: number;
+  electricity_green: number;
+  electricity_black: number;
+  water_delivery_price: number;
+  pools_per_delivery: number;
+  firewood_per_pool: number;
+};
+
+const DEFAULT_REPORT_SETTINGS: ReportSettingsState = {
+  salary_green: 2250,
+  salary_black: 2650,
+  salary_sauna_bonus: 250,
+  salary_pool_bonus: 500,
+  laundry_per_guest: 500,
+  electricity_green: 5000,
+  electricity_black: 20000,
+  water_delivery_price: 5500,
+  pools_per_delivery: 4,
+  firewood_per_pool: 1500,
+};
 
 export default function PriceSettings({ houses, onClose }: Props) {
   const queryClient = useQueryClient();
@@ -29,8 +68,51 @@ export default function PriceSettings({ houses, onClose }: Props) {
       cian_ical_url: h.cian_ical_url ?? "",
     }))
   );
+  const [reportSettings, setReportSettings] = useState<ReportSettingsState>(DEFAULT_REPORT_SETTINGS);
+  const [reportLoading, setReportLoading] = useState(true);
+  const [savingReport, setSavingReport] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("report_settings")
+        .select("*")
+        .eq("id", true)
+        .maybeSingle();
+      if (data) {
+        setReportSettings({
+          salary_green: Number(data.salary_green),
+          salary_black: Number(data.salary_black),
+          salary_sauna_bonus: Number(data.salary_sauna_bonus),
+          salary_pool_bonus: Number(data.salary_pool_bonus),
+          laundry_per_guest: Number(data.laundry_per_guest),
+          electricity_green: Number(data.electricity_green),
+          electricity_black: Number(data.electricity_black),
+          water_delivery_price: Number(data.water_delivery_price),
+          pools_per_delivery: Number(data.pools_per_delivery),
+          firewood_per_pool: Number(data.firewood_per_pool),
+        });
+      }
+      setReportLoading(false);
+    })();
+  }, []);
+
+  const saveReportSettings = async () => {
+    setSavingReport(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("report_settings")
+        .upsert({ id: true, ...reportSettings });
+      if (error) throw error;
+      toast.success("Настройки отчёта сохранены");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSavingReport(false);
+    }
+  };
 
   const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string) || "";
   const icalUrl = (house: string) =>
@@ -174,6 +256,49 @@ export default function PriceSettings({ houses, onClose }: Props) {
       <Button className="mt-6 w-full" onClick={handleSave} disabled={saving}>
         {saving ? "Сохранение..." : "Сохранить"}
       </Button>
+
+      <div className="mt-8 rounded-2xl bg-card p-4 border border-border/50 space-y-3">
+        <div>
+          <h2 className="font-semibold text-sm">Параметры расчёта отчёта</h2>
+          <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+            Базовые расходы для ежемесячного финансового отчёта. З/П начисляется
+            один раз за бронирование (независимо от количества дней). Дрова
+            начисляются на каждую заказанную купель.
+          </p>
+        </div>
+        {reportLoading ? (
+          <p className="text-xs text-muted-foreground">Загрузка...</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              {REPORT_FIELDS.map((f) => (
+                <div key={f.key}>
+                  <Label className="text-xs text-muted-foreground">{f.label}</Label>
+                  <Input
+                    type="number"
+                    value={reportSettings[f.key]}
+                    onChange={(e) =>
+                      setReportSettings((s) => ({
+                        ...s,
+                        [f.key]: Number(e.target.value),
+                      }))
+                    }
+                    className="mt-1"
+                  />
+                </div>
+              ))}
+            </div>
+            <Button
+              className="w-full"
+              onClick={saveReportSettings}
+              disabled={savingReport}
+            >
+              {savingReport ? "Сохранение..." : "Сохранить параметры отчёта"}
+            </Button>
+          </>
+        )}
+      </div>
+
 
       <div className="mt-8 rounded-2xl bg-card p-4 border border-border/50 space-y-3">
         <div>
