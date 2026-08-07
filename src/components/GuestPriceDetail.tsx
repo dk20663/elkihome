@@ -188,10 +188,6 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
                     </div>
                   </div>
 
-                  <div className="flex justify-between">
-                    <span>Пихтовая запарка в чан</span>
-                    <span className="font-semibold">500 ₽</span>
-                  </div>
                 </div>
               </div>
             );
