@@ -219,7 +219,7 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
 
       <div className="flex gap-6 justify-center mt-4 text-sm text-foreground/80">
         <span className="flex items-center gap-1.5">
-          <span className="text-lg leading-none">✅</span>
+          <span className="w-4 h-4 rounded bg-emerald-100 border border-emerald-200" />
           <span className="font-medium">свободно</span>
         </span>
         <span className="flex items-center gap-1.5">
