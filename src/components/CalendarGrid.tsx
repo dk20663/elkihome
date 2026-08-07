@@ -221,7 +221,7 @@ export default function CalendarGrid({
                   {format(day, "d")}
                 </span>
                 <span className="text-[11px] lg:text-base leading-none" aria-hidden>
-                  {booked ? "🔒" : "✅"}
+                  {booked ? "🔒" : null}
                 </span>
               </button>
             );
