@@ -45,23 +45,6 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
-    // Cancelled bookings whose dates are still in the future (or very recent past):
-    // external platforms (Avito, Cian, Sutochno) often keep an imported event forever
-    // if it simply disappears from the feed. We publish an explicit tombstone
-    // (STATUS:CANCELLED + higher SEQUENCE) so the date gets released on their side.
-    const horizon = new Date();
-    horizon.setDate(horizon.getDate() - 7);
-    const horizonStr = horizon.toISOString().slice(0, 10);
-
-    const { data: cancelled } = await supabase
-      .from("bookings")
-      .select("id, check_in, check_out")
-      .eq("house_id", houses.id)
-      .eq("cancelled", true)
-      .gte("check_out", horizonStr);
-
-    const activeIds = new Set((bookings || []).map((b) => b.id));
-
     const now = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 
     let ical = `BEGIN:VCALENDAR
@@ -83,22 +66,6 @@ SUMMARY:Занято
 STATUS:CONFIRMED
 TRANSP:OPAQUE
 SEQUENCE:0
-LAST-MODIFIED:${now}
-DTSTAMP:${now}
-END:VEVENT
-`;
-    }
-
-    for (const b of cancelled || []) {
-      if (activeIds.has(b.id)) continue;
-      ical += `BEGIN:VEVENT
-UID:elkihome-${b.id}
-DTSTART;VALUE=DATE:${formatDate(b.check_in)}
-DTEND;VALUE=DATE:${formatDate(b.check_out)}
-SUMMARY:Отменено
-STATUS:CANCELLED
-TRANSP:TRANSPARENT
-SEQUENCE:2
 LAST-MODIFIED:${now}
 DTSTAMP:${now}
 END:VEVENT
