@@ -6,6 +6,7 @@ export interface House {
   base_price_weekend: number;
   sauna_price: number;
   plunge_pool_price: number;
+  pool_price?: number;
   guest_comment?: string;
   sutochno_ical_url?: string;
   cian_ical_url?: string;
@@ -26,6 +27,7 @@ export interface Booking {
   cancelled: boolean;
   sauna: boolean;
   plunge_pool: boolean;
+  pool: boolean;
   bath_brooms: boolean;
   fir_infusion: boolean;
   citrus_infusion: boolean;
@@ -59,6 +61,7 @@ export interface BookingFormData {
   guest_count: number;
   sauna: boolean;
   plunge_pool: boolean;
+  pool: boolean;
   bath_brooms: boolean;
   fir_infusion: boolean;
   citrus_infusion: boolean;
