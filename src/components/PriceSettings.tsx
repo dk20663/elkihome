@@ -63,6 +63,7 @@ export default function PriceSettings({ houses, onClose }: Props) {
       weekend: h.base_price_weekend,
       sauna_price: h.sauna_price ?? 5000,
       plunge_pool_price: h.plunge_pool_price ?? 5000,
+      pool_price: h.pool_price ?? 0,
       guest_comment: h.guest_comment ?? "",
       sutochno_ical_url: h.sutochno_ical_url ?? "",
       cian_ical_url: h.cian_ical_url ?? "",
@@ -131,7 +132,7 @@ export default function PriceSettings({ houses, onClose }: Props) {
 
   const updateField = (
     id: string,
-    field: "weekday" | "weekend" | "sauna_price" | "plunge_pool_price" | "guest_comment" | "sutochno_ical_url" | "cian_ical_url",
+    field: "weekday" | "weekend" | "sauna_price" | "plunge_pool_price" | "pool_price" | "guest_comment" | "sutochno_ical_url" | "cian_ical_url",
     value: number | string
   ) => {
     setPrices((prev) =>
@@ -150,6 +151,7 @@ export default function PriceSettings({ houses, onClose }: Props) {
             base_price_weekend: p.weekend,
             sauna_price: p.sauna_price,
             plunge_pool_price: p.plunge_pool_price,
+            pool_price: p.pool_price,
             guest_comment: p.guest_comment,
             sutochno_ical_url: p.sutochno_ical_url.trim(),
             cian_ical_url: p.cian_ical_url.trim(),
