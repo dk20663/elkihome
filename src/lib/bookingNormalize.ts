@@ -22,6 +22,7 @@ export function normalizeBooking(raw: any): Booking {
     guest_count: raw.guest_count ?? 0,
     sauna: raw.sauna ?? false,
     plunge_pool: raw.plunge_pool ?? false,
+    pool: raw.pool ?? false,
     bath_brooms: raw.bath_brooms ?? false,
     fir_infusion: raw.fir_infusion ?? false,
     citrus_infusion: raw.citrus_infusion ?? false,

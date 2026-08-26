@@ -83,6 +83,7 @@ interface HouseStats {
   guests: number;
   sauna: number;
   pool: number;
+  swim_pool: number;
   bath_brooms: number;
   fir_infusion: number;
   citrus_infusion: number;
@@ -154,7 +155,7 @@ Deno.serve(async (req) => {
         s = {
           name, kind,
           bookings: 0, guests: 0,
-          sauna: 0, pool: 0,
+          sauna: 0, pool: 0, swim_pool: 0,
           bath_brooms: 0, fir_infusion: 0, citrus_infusion: 0,
           revenue: 0, laundry: 0, salary: 0, electricity: 0, water: 0, firewood: 0,
         };
@@ -164,6 +165,7 @@ Deno.serve(async (req) => {
       s.guests += b.guest_count || 0;
       if (b.sauna) s.sauna += 1;
       if (b.plunge_pool) s.pool += 1;
+      if (b.pool) s.swim_pool += 1;
       if (b.bath_brooms) s.bath_brooms += 1;
       if (b.fir_infusion) s.fir_infusion += 1;
       if (b.citrus_infusion) s.citrus_infusion += 1;
@@ -210,6 +212,7 @@ Deno.serve(async (req) => {
       lines.push(`👥 Гостей: <b>${s.guests}</b>`);
       lines.push(`🧖 Баня: <b>${s.sauna}</b>`);
       lines.push(`🛁 Купель: <b>${s.pool}</b>`);
+      if (s.kind === "BLACK") lines.push(`🏊 Бассейн: <b>${s.swim_pool}</b>`);
       lines.push(`🌿 Веники: <b>${s.bath_brooms}</b>  🌲 Пихта: <b>${s.fir_infusion}</b>  🍊 Цитрус: <b>${s.citrus_infusion}</b>`);
       lines.push("");
       lines.push(`💰 Выручка: <b>${fmt(s.revenue)} ₽</b>`);

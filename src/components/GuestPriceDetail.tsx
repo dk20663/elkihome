@@ -89,6 +89,7 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
             const saunaPrice = house.sauna_price ?? 5000;
             const saunaDiscounted = Math.max(0, saunaPrice - SAUNA_DISCOUNT);
             const plungePrice = house.plunge_pool_price ?? (house.name === "GREEN" ? 5500 : 5000);
+            const poolPrice = house.pool_price ?? 0;
             const isBooked = isHouseBookedOnDate(date, house.id, bookings);
 
             // Today discount: only if today AND house is free
@@ -187,6 +188,16 @@ export default function GuestPriceDetail({ date, houses, filter, open, onClose, 
                       <span className="font-semibold">{plungePrice.toLocaleString("ru-RU")} ₽</span>
                     </div>
                   </div>
+
+                  {/* Pool (BLACK only) */}
+                  {poolPrice > 0 && (
+                    <div>
+                      <div className="flex justify-between items-center">
+                        <span>Бассейн</span>
+                        <span className="font-semibold">{poolPrice.toLocaleString("ru-RU")} ₽</span>
+                      </div>
+                    </div>
+                  )}
 
                 </div>
               </div>
