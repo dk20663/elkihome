@@ -108,6 +108,9 @@ export default function BookingForm({
     }
   }, [initialData, defaultDates, houses, open, currentFilter]);
 
+  const isBlackHouse = houses.find((h) => h.id === houseId)?.name === "BLACK";
+
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!houseId || !checkIn || !checkOut) {
