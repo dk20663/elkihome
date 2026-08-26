@@ -59,6 +59,7 @@ export default function BookingForm({
   const [guestCount, setGuestCount] = useState("1");
   const [sauna, setSauna] = useState(false);
   const [plungePool, setPlungePool] = useState(false);
+  const [pool, setPool] = useState(false);
   const [bathBrooms, setBathBrooms] = useState(false);
   const [firInfusion, setFirInfusion] = useState(false);
   const [citrusInfusion, setCitrusInfusion] = useState(false);
@@ -76,6 +77,7 @@ export default function BookingForm({
       setGuestCount(String(initialData.guest_count || 1));
       setSauna(initialData.sauna);
       setPlungePool(initialData.plunge_pool);
+      setPool((initialData as any).pool ?? false);
       setBathBrooms(initialData.bath_brooms);
       setFirInfusion(initialData.fir_infusion);
       setCitrusInfusion(initialData.citrus_infusion);
@@ -99,6 +101,7 @@ export default function BookingForm({
       setGuestCount("1");
       setSauna(false);
       setPlungePool(false);
+      setPool(false);
       setBathBrooms(false);
       setFirInfusion(false);
       setCitrusInfusion(false);
@@ -127,6 +130,7 @@ export default function BookingForm({
       guest_count: Number(guestCount),
       sauna,
       plunge_pool: plungePool,
+      pool: isBlackHouse ? pool : false,
       bath_brooms: bathBrooms,
       fir_infusion: firInfusion,
       citrus_infusion: citrusInfusion,
