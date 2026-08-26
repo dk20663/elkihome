@@ -236,6 +236,22 @@ export default function PriceSettings({ houses, onClose }: Props) {
                 />
               </div>
             </div>
+            {p.name === "BLACK" && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Бассейн, ₽</Label>
+                  <Input
+                    type="number"
+                    value={p.pool_price}
+                    onChange={(e) => updateField(p.id, "pool_price", Number(e.target.value))}
+                    className="mt-1"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    0 — услуга скрыта у гостей
+                  </p>
+                </div>
+              </div>
+            )}
             <div>
               <Label className="text-xs text-muted-foreground">
                 Комментарий для гостя (виден при просмотре даты)

@@ -75,6 +75,7 @@ export default function CancelledBookingsSheet({ bookings, houses, open, onClose
             const services = [
               booking.sauna && "Баня",
               booking.plunge_pool && "Купель",
+              (booking as any).pool && "Бассейн",
               booking.fir_infusion && "Пихтовая запарка",
               booking.citrus_infusion && "Цитрусовая запарка",
             ].filter(Boolean);
