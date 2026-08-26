@@ -83,6 +83,7 @@ interface HouseStats {
   guests: number;
   sauna: number;
   pool: number;
+  swim_pool: number;
   bath_brooms: number;
   fir_infusion: number;
   citrus_infusion: number;
