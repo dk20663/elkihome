@@ -63,10 +63,22 @@ export default {
           black: "hsl(var(--house-black))",
           "black-light": "hsl(var(--house-black-light))",
         },
+        guest: {
+          bg: "hsl(var(--guest-bg))",
+          surface: "hsl(var(--guest-surface))",
+          cell: "hsl(var(--guest-cell))",
+          "cell-alt": "hsl(var(--guest-cell-alt))",
+          booked: "hsl(var(--guest-booked))",
+          "booked-foreground": "hsl(var(--guest-booked-foreground))",
+          ink: "hsl(var(--guest-ink))",
+          muted: "hsl(var(--guest-muted))",
+          line: "hsl(var(--guest-line))",
+        },
         price: {
           DEFAULT: "hsl(var(--price))",
           foreground: "hsl(var(--price-foreground))",
         },
+
       },
       borderRadius: {
         lg: "var(--radius)",
