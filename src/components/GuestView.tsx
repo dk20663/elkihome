@@ -193,6 +193,10 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
           </button>
         </div>
 
+        <p className="text-center text-sm text-guest-muted mb-5">
+          Нажмите на дату, чтобы узнать подробности
+        </p>
+
         <CalendarGrid
           month={month}
           bookings={bookings}
