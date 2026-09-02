@@ -59,7 +59,19 @@
     --occupied-green: 152 60% 42%;
     --occupied-black: 220 20% 20%;
 
+    /* Guest (public) calendar palette — warm, modern */
+    --guest-bg: 40 33% 95%;
+    --guest-surface: 40 38% 97%;
+    --guest-cell: 40 26% 93%;
+    --guest-cell-alt: 40 20% 90%;
+    --guest-booked: 154 40% 20%;
+    --guest-booked-foreground: 40 38% 97%;
+    --guest-ink: 155 15% 16%;
+    --guest-muted: 40 8% 52%;
+    --guest-line: 40 18% 87%;
+
     --sidebar-background: 0 0% 98%;
+
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
     --sidebar-primary-foreground: 0 0% 98%;

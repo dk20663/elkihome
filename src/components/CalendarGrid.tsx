@@ -153,20 +153,21 @@ export default function CalendarGrid({
       {bookingsLoading && (
         <div className="calendar-loading-bar mb-2" aria-label="Загрузка занятых дат" />
       )}
-      <div className="grid grid-cols-7 mb-1">
+      <div className={cn("grid grid-cols-7 mb-1", isPublicView && "gap-1.5 lg:gap-2 mb-2")}>
         {WEEKDAYS.map((d, i) => (
           <div
             key={d}
             className={cn(
               "text-center text-[10px] lg:text-sm font-medium text-muted-foreground py-1 lg:py-2",
-              (i === 5 || i === 6) && "font-bold text-foreground/70"
+              (i === 5 || i === 6) && "font-bold text-foreground/70",
+              isPublicView && "text-guest-muted font-medium text-[11px] lg:text-sm tracking-wide"
             )}
           >
             {d}
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7">
+      <div className={cn("grid grid-cols-7", isPublicView && "gap-1.5 lg:gap-2")}>
         {days.map((day, idx) => {
           const inMonth = isSameMonth(day, month);
           const isCurrentDay = isToday(day);
@@ -184,16 +185,16 @@ export default function CalendarGrid({
               <button
                 key={day.toISOString()}
                 disabled
-                className="relative flex flex-col items-center justify-center aspect-square text-xs lg:text-lg opacity-20 pointer-events-none"
+                className="relative flex items-center justify-center aspect-square rounded-2xl bg-guest-cell/40 text-sm lg:text-lg pointer-events-none"
               >
-                <span className="font-semibold leading-none lg:text-lg text-muted-foreground">
+                <span className="font-medium leading-none text-guest-muted/45">
                   {format(day, "d")}
                 </span>
               </button>
             );
           }
 
-          // Guest/public view: single selected house — large date + clear ✅/🔒 indicator
+          // Guest/public view: single selected house — clean modern cells
           if (isPublicView) {
             const booked = filter === "green" ? greenBooked : filter === "black" ? blackBooked : (greenBooked || blackBooked);
             return (
@@ -202,30 +203,30 @@ export default function CalendarGrid({
                 onClick={() => inMonth && onDateClick(day)}
                 disabled={!inMonth}
                 className={cn(
-                  "relative flex flex-col items-center justify-center gap-0.5 lg:gap-1 aspect-square rounded-[var(--radius)] transition-all",
-                  !inMonth && "opacity-20 pointer-events-none",
-                  inMonth && !booked && "bg-emerald-50 hover:bg-emerald-100",
-                  inMonth && booked && "bg-rose-50 hover:bg-rose-100",
-                  inMonth && isWeekend && !booked && "bg-emerald-100/60",
-                  isCurrentDay && "ring-2 ring-primary ring-offset-1",
+                  "group relative flex items-center justify-center aspect-square rounded-2xl",
+                  "transition-all duration-200 ease-out outline-none",
+                  "focus-visible:ring-2 focus-visible:ring-guest-booked/50",
+                  !inMonth && "pointer-events-none bg-guest-cell/35",
+                  inMonth && !booked && "bg-guest-cell hover:-translate-y-0.5 hover:shadow-[0_6px_18px_-10px_hsl(var(--guest-booked)/0.55)] hover:ring-2 hover:ring-guest-booked/25",
+                  inMonth && booked && "bg-guest-booked shadow-[0_8px_20px_-12px_hsl(var(--guest-booked)/0.9)] hover:-translate-y-0.5 hover:ring-2 hover:ring-guest-booked/30",
+                  isCurrentDay && !booked && "ring-2 ring-guest-booked/45",
                   isRefreshing && "calendar-cell-refreshing"
                 )}
                 aria-label={`${format(day, "d MMMM")}: ${booked ? "занято" : "свободно"}`}
               >
                 <span
                   className={cn(
-                    "font-bold leading-none text-sm lg:text-lg",
-                    booked ? "text-rose-900/70" : "text-emerald-900"
+                    "font-medium leading-none text-sm lg:text-lg tabular-nums transition-colors",
+                    !inMonth && "text-guest-muted/40",
+                    inMonth && (booked ? "text-guest-booked-foreground" : "text-guest-ink")
                   )}
                 >
                   {format(day, "d")}
                 </span>
-                <span className="text-[11px] lg:text-base leading-none" aria-hidden>
-                  {booked ? "🔒" : null}
-                </span>
               </button>
             );
           }
+
 
           const hasCancelled = !isPublicView && dayBookings.some((b) => b.cancelled);
 
