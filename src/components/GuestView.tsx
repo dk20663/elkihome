@@ -97,18 +97,21 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
   // ============ Экран выбора дома ============
   if (!selectedHouse) {
     return (
-      <div className="min-h-screen bg-background p-4 flex flex-col lg:max-w-3xl max-w-md mx-auto">
+      <div className="min-h-screen bg-guest-bg p-4 sm:p-6 flex flex-col lg:max-w-3xl max-w-md mx-auto">
         {!hideBack && (
           <div className="mb-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-guest-ink" onClick={onBack}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </div>
         )}
         <div className="flex-1 flex flex-col justify-center py-8">
           <div className="text-center mb-8">
-            <h1 className="text-2xl lg:text-3xl font-bold mb-2">Выберите дом</h1>
-            <p className="text-sm lg:text-base text-muted-foreground">
+            <p className="text-[11px] uppercase tracking-[0.25em] text-guest-muted mb-3">Elki Home</p>
+            <h1 className="text-3xl lg:text-4xl font-semibold tracking-tight text-guest-ink mb-2">
+              Выберите дом
+            </h1>
+            <p className="text-sm lg:text-base text-guest-muted">
               Чтобы посмотреть свободные даты и цены
             </p>
           </div>
@@ -121,27 +124,26 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
                   key={h}
                   onClick={() => setSelectedHouse(h)}
                   className={cn(
-                    "group relative overflow-hidden rounded-3xl p-8 lg:p-10 text-left transition-all hover:scale-[1.02] active:scale-[0.99] shadow-lg hover:shadow-xl",
-                    isGreen
-                      ? "bg-house-green text-white"
-                      : "bg-house-black text-white"
+                    "group relative overflow-hidden rounded-3xl p-8 lg:p-10 text-left text-white",
+                    "transition-all duration-300 hover:-translate-y-1 active:translate-y-0",
+                    "shadow-[0_18px_40px_-24px_hsl(var(--guest-ink)/0.7)] hover:shadow-[0_26px_50px_-24px_hsl(var(--guest-ink)/0.8)]",
+                    isGreen ? "bg-guest-booked" : "bg-[hsl(155_10%_13%)]"
                   )}
                 >
-                  <div className="text-xs uppercase tracking-widest opacity-80 mb-2">
-                    Дом
-                  </div>
-                  <div className="text-4xl lg:text-5xl font-black tracking-tight mb-4">
+                  <div className="text-[11px] uppercase tracking-[0.25em] opacity-70 mb-2">Дом</div>
+                  <div className="text-4xl lg:text-5xl font-semibold tracking-tight mb-6">
                     {isGreen ? "GREEN" : "BLACK"}
                   </div>
-                  <div className="text-sm opacity-90">
-                    Смотреть календарь →
+                  <div className="inline-flex items-center gap-2 text-sm opacity-90 transition-transform duration-300 group-hover:translate-x-1">
+                    Смотреть календарь
+                    <ChevronRight className="h-4 w-4" />
                   </div>
                 </button>
               );
             })}
           </div>
 
-          <p className="text-center text-xs text-muted-foreground mt-8">
+          <p className="text-center text-xs text-guest-muted mt-8">
             Вы сможете в любой момент вернуться и выбрать другой дом
           </p>
         </div>
@@ -151,59 +153,46 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
 
   // ============ Экран календаря выбранного дома ============
   const houseLabel = selectedHouse === "green" ? "GREEN" : "BLACK";
-  const isGreen = selectedHouse === "green";
 
   return (
-    <div className="min-h-screen bg-background p-4 flex flex-col lg:max-w-5xl max-w-md mx-auto">
-      {/* Заметная кнопка возврата к выбору дома */}
-      <button
-        onClick={() => setSelectedHouse(null)}
-        className="flex items-center gap-2 mb-3 px-4 py-2.5 rounded-xl bg-secondary hover:bg-secondary/70 transition-colors text-sm font-semibold text-foreground self-start"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Назад к выбору дома
-      </button>
-
-      {/* Крупный заголовок текущего дома */}
-      <div
-        className={cn(
-          "rounded-2xl p-4 mb-4 flex items-center gap-3 shadow-sm",
-          isGreen ? "bg-house-green text-white" : "bg-house-black text-white"
-        )}
-      >
-        <div className="flex-1">
-          <div className="text-[11px] uppercase tracking-widest opacity-80">
-            Календарь дома
-          </div>
-          <div className="text-2xl lg:text-3xl font-black tracking-tight">
-            {houseLabel}
-          </div>
-        </div>
-        <p className="text-xs opacity-90 max-w-[140px] text-right hidden sm:block">
-          Нажмите на дату, чтобы увидеть цены
-        </p>
-      </div>
-
-      <p className="text-xs text-muted-foreground text-center mb-3 sm:hidden">
-        Нажмите на дату, чтобы увидеть цены
-      </p>
-
-      <div className="flex items-center justify-between mb-3">
-        <Button variant="ghost" size="icon" onClick={() => setMonth(subMonths(month, 1))}>
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <span className="text-base font-bold capitalize flex items-center gap-1.5">
-          {format(month, "LLLL yyyy", { locale: ru })}
-          {isRefreshing && (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-label="Обновление" />
-          )}
+    <div className="min-h-screen bg-guest-bg p-4 sm:p-6 flex flex-col lg:max-w-3xl max-w-md mx-auto">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <button
+          onClick={() => setSelectedHouse(null)}
+          className="inline-flex items-center gap-2 rounded-full bg-guest-surface px-4 py-2 text-sm font-medium text-guest-ink border border-guest-line transition-colors hover:bg-guest-cell"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Другой дом
+        </button>
+        <span className="inline-flex items-center gap-2 rounded-full bg-guest-booked px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-guest-booked-foreground">
+          {houseLabel}
         </span>
-        <Button variant="ghost" size="icon" onClick={() => setMonth(addMonths(month, 1))}>
-          <ChevronRight className="h-5 w-5" />
-        </Button>
       </div>
 
-      <div className="bg-card rounded-2xl p-3 shadow-sm border border-border/50">
+      <div className="rounded-[28px] bg-guest-surface border border-guest-line p-4 sm:p-6 shadow-[0_24px_60px_-40px_hsl(var(--guest-ink)/0.6)]">
+        <div className="flex items-center justify-between mb-5">
+          <button
+            onClick={() => setMonth(subMonths(month, 1))}
+            className="h-11 w-11 rounded-full border border-guest-line flex items-center justify-center text-guest-ink transition-colors hover:bg-guest-cell"
+            aria-label="Предыдущий месяц"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <span className="text-xl lg:text-2xl font-semibold capitalize text-guest-ink flex items-center gap-2 tracking-tight">
+            {format(month, "LLLL yyyy", { locale: ru })}
+            {isRefreshing && (
+              <Loader2 className="h-4 w-4 animate-spin text-guest-muted" aria-label="Обновление" />
+            )}
+          </span>
+          <button
+            onClick={() => setMonth(addMonths(month, 1))}
+            className="h-11 w-11 rounded-full border border-guest-line flex items-center justify-center text-guest-ink transition-colors hover:bg-guest-cell"
+            aria-label="Следующий месяц"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+
         <CalendarGrid
           month={month}
           bookings={bookings}
@@ -215,27 +204,22 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
           bookingsLoading={bookingsLoading}
           isRefreshing={isRefreshing}
         />
+
+        <div className="flex flex-wrap gap-5 justify-center mt-6 pt-5 border-t border-guest-line text-sm text-guest-muted">
+          <span className="flex items-center gap-2">
+            <span className="h-3.5 w-3.5 rounded-full bg-guest-cell border border-guest-line" />
+            Свободно
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="h-3.5 w-3.5 rounded-full bg-guest-booked" />
+            Забронировано
+          </span>
+        </div>
       </div>
 
-      <div className="flex gap-6 justify-center mt-4 text-sm text-foreground/80">
-        <span className="flex items-center gap-1.5">
-          <span className="w-4 h-4 rounded bg-emerald-100 border border-emerald-200" />
-          <span className="font-medium">свободно</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="text-lg leading-none">🔒</span>
-          <span className="font-medium">занято</span>
-        </span>
-      </div>
-
-      {/* Дублирующая кнопка возврата внизу для длинных страниц */}
-      <button
-        onClick={() => setSelectedHouse(null)}
-        className="mt-6 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-border hover:bg-secondary transition-colors text-sm font-semibold"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Назад к выбору дома
-      </button>
+      <p className="text-center text-xs text-guest-muted mt-4">
+        Нажмите на дату, чтобы увидеть цены
+      </p>
 
       <GuestPriceDetail
         date={selectedDate}
@@ -249,3 +233,4 @@ export default function GuestView({ onBack, hideBack = false }: Props) {
     </div>
   );
 }
+
