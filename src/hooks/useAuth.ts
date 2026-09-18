@@ -18,22 +18,39 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
+    // Auth or the hosted database may occasionally be unavailable. Never leave
+    // the whole application behind an endless loading screen in that case.
+    const loadingGuard = window.setTimeout(() => {
+      if (active) setLoading(false);
+    }, 8000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
+        if (!active) return;
         setUser(session?.user ?? null);
+        setLoading(false);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active) return;
       if (session?.user) {
         setUser(session.user);
         setLoading(false);
       } else {
         authenticateViaTelegram();
       }
+    }).catch((err) => {
+      console.error("Auth initialization error:", err);
+      if (active) setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      window.clearTimeout(loadingGuard);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const authenticateViaTelegram = async () => {
